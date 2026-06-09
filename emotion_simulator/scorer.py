@@ -3,7 +3,7 @@
 负责计算句子的情绪分数
 """
 
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Any
 from .models import (
     EmotionDimension,
     SynonymGroup,
@@ -83,28 +83,89 @@ class EmotionScorer:
                 return True
         return False
 
+    def find_matched_words(self, sentence: str) -> List[Tuple[int, str, SynonymEntry]]:
+        """
+        使用最长匹配算法找出句子中所有匹配的词
+        返回：[(起始位置, 匹配词, 同义词条目)]
+        保证不重叠，优先匹配更长的词
+        """
+        all_words = []
+        for group in self.synonym_groups:
+            for entry in group.entries:
+                word = entry.word
+                start = 0
+                while True:
+                    pos = sentence.find(word, start)
+                    if pos == -1:
+                        break
+                    all_words.append((pos, len(word), word, entry))
+                    start = pos + 1
+
+        all_words.sort(key=lambda x: (-x[1], x[0]))
+
+        matched = []
+        used_ranges = []
+
+        for pos, length, word, entry in all_words:
+            word_end = pos + length
+            overlaps = False
+            for used_start, used_end in used_ranges:
+                if not (word_end <= used_start or pos >= used_end):
+                    overlaps = True
+                    break
+
+            if not overlaps:
+                matched.append((pos, word, entry))
+                used_ranges.append((pos, word_end))
+
+        matched.sort(key=lambda x: x[0])
+        return matched
+
     def score_sentence(self, sentence: str) -> Dict[str, float]:
         """
-        计算句子的情绪分数
+        计算句子的情绪分数（使用最长匹配算法，避免重复计分）
         返回各维度的分数字典
         """
         scores = {dim.name: 0.0 for dim in self.dimensions}
         total_intensity = 0.0
 
-        for group in self.synonym_groups:
-            for entry in group.entries:
-                if entry.word in sentence:
-                    count = sentence.count(entry.word)
-                    weight = entry.intensity * count
-                    total_intensity += weight
-                    for dim_name in scores:
-                        scores[dim_name] += entry.get_score(dim_name) * weight
+        matched_words = self.find_matched_words(sentence)
+
+        for pos, word, entry in matched_words:
+            weight = entry.intensity
+            total_intensity += weight
+            for dim_name in scores:
+                scores[dim_name] += entry.get_score(dim_name) * weight
 
         if total_intensity > 0:
             for dim_name in scores:
                 scores[dim_name] /= total_intensity
 
         return scores
+
+    def get_score_details(self, sentence: str) -> Dict[str, Any]:
+        """
+        获取详细的评分信息（用于调试）
+        返回包含匹配词、各词分数等详细信息
+        """
+        matched_words = self.find_matched_words(sentence)
+        scores = self.score_sentence(sentence)
+
+        details = {
+            "sentence": sentence,
+            "matched_words": [],
+            "final_scores": scores,
+        }
+
+        for pos, word, entry in matched_words:
+            details["matched_words"].append({
+                "position": pos,
+                "word": word,
+                "intensity": entry.intensity,
+                "emotion_scores": entry.emotion_scores,
+            })
+
+        return details
 
     def get_word_entry(self, word: str) -> Optional[SynonymEntry]:
         """获取词的同义词条目"""

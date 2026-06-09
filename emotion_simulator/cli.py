@@ -10,7 +10,7 @@ from typing import List, Optional
 from .models import EmotionDimension, DefaultDimensions
 from .simulator import EmotionSimulator
 from .visualizer import ASCIIVisualizer
-from .exporter import JSONExporter
+from .exporter import JSONExporter, BatchSummarizer, CSVExporter
 
 
 def read_sentences_from_file(filepath: str) -> List[str]:
@@ -87,25 +87,34 @@ def create_parser() -> argparse.ArgumentParser:
         epilog="""
 示例:
   # 基本用法 - 模拟10次传递
-  python -m emotion_simulator.cli "今天天气不错" -n 10
+  python main.py "今天天气不错" -n 10
 
   # 锁定关键词不让变化
-  python -m emotion_simulator.cli "今天天气不错" -n 10 -l "今天,天气"
+  python main.py "今天天气不错" -n 10 -l "今天,天气"
 
-  # 自定义情绪维度
-  python -m emotion_simulator.cli "我喜欢这个" -n 10 -d "喜欢度:讨厌:喜爱,强度:微弱:强烈"
+  # 使用外部词库配置文件
+  python main.py "今天天气不错" -n 10 --lexicon work_lexicon.json
+
+  # 自定义情绪维度（配合词库使用才能有分数）
+  python main.py "我喜欢这个" -n 10 -d "满意度:不满意:满意,压力:轻松:繁重"
 
   # 设置情绪漂移（向积极方向）
-  python -m emotion_simulator.cli "今天天气不错" -n 10 --drift "positive_negative:0.8"
+  python main.py "今天天气不错" -n 10 --drift "positive_negative:0.8"
 
-  # 批量模拟
-  python -m emotion_simulator.cli -f sentences.txt -n 10 -o output.json
+  # 批量模拟并按变化幅度排序
+  python main.py -f sentences.txt -n 10 --sort-by positive_negative_change_abs
 
-  # 导出结果为JSON
-  python -m emotion_simulator.cli "今天天气不错" -n 10 -o result.json
+  # 批量模拟导出汇总CSV
+  python main.py -f sentences.txt -n 10 --output-summary-csv summary.csv
+
+  # 导出结果为JSON和CSV
+  python main.py "今天天气不错" -n 10 -o result.json --output-csv result.csv
 
   # 设置变化概率和幅度
-  python -m emotion_simulator.cli "今天天气不错" -n 10 -p 0.8 -m 0.7
+  python main.py "今天天气不错" -n 10 -p 0.8 -m 0.7
+
+  # 调试：显示评分匹配的词
+  python main.py "有点累，今天工作很好" -n 0 --show-matched
         """
     )
 
@@ -205,7 +214,78 @@ def create_parser() -> argparse.ArgumentParser:
         help="显示详细的每步信息"
     )
 
+    parser.add_argument(
+        "--lexicon",
+        help="外部词库配置文件路径（JSON格式）"
+    )
+
+    parser.add_argument(
+        "--no-merge-default",
+        action="store_true",
+        help="不合并默认词库（只使用外部词库）"
+    )
+
+    parser.add_argument(
+        "--sort-by",
+        help="批量模拟结果排序字段（如 positive_negative_change_abs, changes_count 等）"
+    )
+
+    parser.add_argument(
+        "--sort-ascending",
+        action="store_true",
+        help="按升序排列（默认降序）"
+    )
+
+    parser.add_argument(
+        "--output-csv",
+        help="导出时间序列数据为CSV文件"
+    )
+
+    parser.add_argument(
+        "--output-summary",
+        help="导出批量汇总为简洁的JSON文件"
+    )
+
+    parser.add_argument(
+        "--output-summary-csv",
+        help="导出批量汇总为CSV文件"
+    )
+
+    parser.add_argument(
+        "--show-matched",
+        action="store_true",
+        help="显示评分时匹配到的词（用于调试评分逻辑）"
+    )
+
     return parser
+
+
+def create_simulator(args: argparse.Namespace, cli_dimensions: Optional[List[EmotionDimension]] = None) -> EmotionSimulator:
+    """根据参数创建模拟器"""
+    if args.lexicon:
+        simulator = EmotionSimulator.from_lexicon_file(
+            lexicon_filepath=args.lexicon,
+            merge_default=not args.no_merge_default,
+            change_probability=args.probability,
+            magnitude=args.magnitude,
+            random_seed=args.seed,
+        )
+
+        if cli_dimensions:
+            existing_dim_names = {d.name for d in simulator.dimensions}
+            for dim in cli_dimensions:
+                if dim.name not in existing_dim_names:
+                    simulator.add_custom_dimension(dim)
+    else:
+        dimensions = cli_dimensions or parse_dimensions(args.dimensions)
+        simulator = EmotionSimulator(
+            dimensions=dimensions,
+            change_probability=args.probability,
+            magnitude=args.magnitude,
+            random_seed=args.seed,
+        )
+
+    return simulator
 
 
 def run_single_simulation(args: argparse.Namespace) -> None:
@@ -214,7 +294,7 @@ def run_single_simulation(args: argparse.Namespace) -> None:
     print("文本情绪演进模拟器 - 单次模拟")
     print("=" * 60)
 
-    dimensions = parse_dimensions(args.dimensions)
+    cli_dimensions = parse_dimensions(args.dimensions) if args.dimensions else None
     locked_words = parse_locked_words(args.locked)
     drifts = parse_drift(args.drift)
 
@@ -222,18 +302,18 @@ def run_single_simulation(args: argparse.Namespace) -> None:
     print(f"传递次数: {args.steps}")
     print(f"变化概率: {args.probability:.1%}")
     print(f"变化幅度: {args.magnitude:.1%}")
+    if args.lexicon:
+        print(f"词库配置: {args.lexicon}")
+        if args.no_merge_default:
+            print(f"不合并默认词库")
     if locked_words:
         print(f"锁定关键词: {', '.join(locked_words)}")
     if drifts:
         print(f"情绪漂移: {drifts}")
-    print(f"情绪维度: {', '.join([d.name for d in dimensions])}")
 
-    simulator = EmotionSimulator(
-        dimensions=dimensions,
-        change_probability=args.probability,
-        magnitude=args.magnitude,
-        random_seed=args.seed,
-    )
+    simulator = create_simulator(args, cli_dimensions)
+
+    print(f"情绪维度: {', '.join([d.name for d in simulator.dimensions])}")
 
     for dim_name, direction in drifts.items():
         simulator.set_drift(dim_name, direction)
@@ -278,23 +358,39 @@ def run_single_simulation(args: argparse.Namespace) -> None:
     changes_count = sum(1 for s in result.steps if s.changed_word)
     print(f"总变化次数: {changes_count}/{args.steps}")
 
+    if args.show_matched:
+        print("\n" + "=" * 60)
+        print("评分匹配详情（最长匹配）:")
+        print("=" * 60)
+        details = simulator.scorer.get_score_details(args.sentence)
+        print(f"句子: {details['sentence']}")
+        print(f"匹配到 {len(details['matched_words'])} 个词:")
+        for i, match in enumerate(details['matched_words'], 1):
+            print(f"  {i}. 位置{match['position']}: '{match['word']}'")
+            print(f"     强度: {match['intensity']}, 分数: {match['emotion_scores']}")
+        print(f"最终分数: {details['final_scores']}")
+        print()
+
+        if args.steps == 0:
+            return
+
     if result.steps:
         print("\n情绪评分变化:")
-        for dim in dimensions:
+        for dim in simulator.dimensions:
             series = result.get_emotion_series(dim.name)
             if series:
                 print(f"  {dim.high_label} vs {dim.low_label}: "
                       f"{series[0]:+.2f} → {series[-1]:+.2f} "
                       f"(变化: {series[-1] - series[0]:+.2f})")
 
-    if not args.no_chart:
+    if not args.no_chart and args.steps > 0:
         print("\n" + "=" * 60)
         if args.multi_dim:
             print("多维度情绪演进曲线:")
             print("=" * 60)
             print(visualizer.plot_multi_dimension(result, use_color=use_color))
         else:
-            for dim in dimensions:
+            for dim in simulator.dimensions:
                 print(f"\n{dim.high_label} vs {dim.low_label} 情绪演进曲线:")
                 print("=" * 60)
                 print(visualizer.plot_single(result, dim.name, use_color=use_color))
@@ -303,6 +399,10 @@ def run_single_simulation(args: argparse.Namespace) -> None:
     if args.output:
         JSONExporter.export(result, args.output)
         print(f"\n结果已导出到: {args.output}")
+
+    if args.output_csv:
+        CSVExporter.export_timeseries(result, args.output_csv)
+        print(f"时间序列CSV已导出到: {args.output_csv}")
 
 
 def run_batch_simulation(args: argparse.Namespace) -> None:
@@ -316,7 +416,7 @@ def run_batch_simulation(args: argparse.Namespace) -> None:
         print(f"错误: 文件 {args.file} 中没有有效的句子")
         sys.exit(1)
 
-    dimensions = parse_dimensions(args.dimensions)
+    cli_dimensions = parse_dimensions(args.dimensions) if args.dimensions else None
     locked_words = parse_locked_words(args.locked)
     drifts = parse_drift(args.drift)
 
@@ -325,22 +425,23 @@ def run_batch_simulation(args: argparse.Namespace) -> None:
     print(f"传递次数: {args.steps}")
     print(f"变化概率: {args.probability:.1%}")
     print(f"变化幅度: {args.magnitude:.1%}")
+    if args.lexicon:
+        print(f"词库配置: {args.lexicon}")
+        if args.no_merge_default:
+            print(f"不合并默认词库")
     if locked_words:
         print(f"锁定关键词: {', '.join(locked_words)}")
     if drifts:
         print(f"情绪漂移: {drifts}")
-    print(f"情绪维度: {', '.join([d.name for d in dimensions])}")
+    if args.sort_by:
+        print(f"排序字段: {args.sort_by} ({'升序' if args.sort_ascending else '降序'})")
+
+    simulator = create_simulator(args, cli_dimensions)
+    print(f"情绪维度: {', '.join([d.name for d in simulator.dimensions])}")
 
     print("\n待模拟句子:")
     for i, sentence in enumerate(sentences, 1):
         print(f"  {i}. {sentence}")
-
-    simulator = EmotionSimulator(
-        dimensions=dimensions,
-        change_probability=args.probability,
-        magnitude=args.magnitude,
-        random_seed=args.seed,
-    )
 
     for dim_name, direction in drifts.items():
         simulator.set_drift(dim_name, direction)
@@ -371,14 +472,21 @@ def run_batch_simulation(args: argparse.Namespace) -> None:
         print(f"    变化次数: {changes_count}/{args.steps}")
 
         if result.steps:
-            for dim in dimensions:
+            for dim in simulator.dimensions:
                 series = result.get_emotion_series(dim.name)
                 if series:
                     print(f"    {dim.name}: {series[0]:+.2f} → {series[-1]:+.2f}")
 
-    if not args.no_chart:
+    print("\n" + BatchSummarizer.print_summary(
+        results,
+        sort_by=args.sort_by,
+        sort_ascending=args.sort_ascending,
+        use_color=use_color,
+    ))
+
+    if not args.no_chart and args.steps > 0:
         print("\n" + "=" * 60)
-        for dim in dimensions:
+        for dim in simulator.dimensions:
             print(f"\n{dim.high_label} vs {dim.low_label} 对比曲线:")
             print("=" * 60)
             labels = [s[:20] + "..." if len(s) > 20 else s for s in sentences]
@@ -388,6 +496,28 @@ def run_batch_simulation(args: argparse.Namespace) -> None:
     if args.output:
         JSONExporter.export_batch(results, args.output)
         print(f"\n批量结果已导出到: {args.output}")
+
+    if args.output_csv:
+        CSVExporter.export_batch_timeseries(results, args.output_csv)
+        print(f"批量时间序列CSV已导出到: {args.output_csv}")
+
+    if args.output_summary:
+        BatchSummarizer.export_summary_json(
+            results,
+            args.output_summary,
+            sort_by=args.sort_by,
+            sort_ascending=args.sort_ascending,
+        )
+        print(f"汇总JSON已导出到: {args.output_summary}")
+
+    if args.output_summary_csv:
+        BatchSummarizer.export_summary_csv(
+            results,
+            args.output_summary_csv,
+            sort_by=args.sort_by,
+            sort_ascending=args.sort_ascending,
+        )
+        print(f"汇总CSV已导出到: {args.output_summary_csv}")
 
 
 def main() -> None:

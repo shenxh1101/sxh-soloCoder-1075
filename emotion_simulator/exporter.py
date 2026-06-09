@@ -4,7 +4,9 @@
 """
 
 import json
-from typing import List, Dict, Any
+import csv
+import io
+from typing import List, Dict, Any, Optional
 from .models import SimulationResult, TransmissionStep, EmotionDimension
 
 
@@ -142,3 +144,266 @@ class JSONExporter:
             "results": [JSONExporter._result_to_dict(r) for r in results],
         }
         return json.dumps(data, ensure_ascii=False, indent=indent)
+
+
+class BatchSummarizer:
+    """
+    批量模拟结果汇总器
+    支持排序、统计、简洁导出
+    """
+
+    @staticmethod
+    def get_result_metrics(result: SimulationResult) -> Dict[str, Any]:
+        """
+        获取单个结果的统计指标
+        """
+        if not result.steps:
+            return {}
+
+        metrics = {
+            "initial_sentence": result.initial_sentence,
+            "final_sentence": result.get_final_sentence(),
+            "total_steps": len(result.steps),
+            "changes_count": sum(1 for s in result.steps if s.changed_word is not None),
+        }
+
+        for dim in result.dimensions:
+            series = result.get_emotion_series(dim.name)
+            if series:
+                change = series[-1] - series[0]
+                metrics[f"{dim.name}_start"] = series[0]
+                metrics[f"{dim.name}_end"] = series[-1]
+                metrics[f"{dim.name}_change"] = change
+                metrics[f"{dim.name}_change_abs"] = abs(change)
+                metrics[f"{dim.name}_min"] = min(series)
+                metrics[f"{dim.name}_max"] = max(series)
+                metrics[f"{dim.name}_mean"] = sum(series) / len(series)
+
+        return metrics
+
+    @staticmethod
+    def summarize(
+        results: List[SimulationResult],
+        sort_by: Optional[str] = None,
+        sort_ascending: bool = False,
+    ) -> List[Dict[str, Any]]:
+        """
+        汇总批量模拟结果，支持排序
+        
+        Args:
+            results: 模拟结果列表
+            sort_by: 排序字段名（如 "positive_negative_change_abs", "changes_count" 等）
+            sort_ascending: 是否升序排列
+        
+        Returns:
+            排序后的统计指标列表
+        """
+        summaries = [BatchSummarizer.get_result_metrics(r) for r in results]
+
+        if sort_by and sort_by in summaries[0] if summaries else False:
+            summaries.sort(key=lambda x: x.get(sort_by, 0), reverse=not sort_ascending)
+
+        return summaries
+
+    @staticmethod
+    def export_summary_json(
+        results: List[SimulationResult],
+        filepath: str,
+        sort_by: Optional[str] = None,
+        sort_ascending: bool = False,
+    ) -> None:
+        """
+        导出批量汇总为简洁的JSON文件
+        """
+        summary = {
+            "count": len(results),
+            "sort_by": sort_by,
+            "sort_ascending": sort_ascending,
+            "results": BatchSummarizer.summarize(results, sort_by, sort_ascending),
+        }
+
+        if results:
+            summary["dimensions"] = [
+                JSONExporter._dimension_to_dict(d) for d in results[0].dimensions
+            ]
+
+        with open(filepath, "w", encoding="utf-8") as f:
+            json.dump(summary, f, ensure_ascii=False, indent=2)
+
+    @staticmethod
+    def export_summary_csv(
+        results: List[SimulationResult],
+        filepath: str,
+        sort_by: Optional[str] = None,
+        sort_ascending: bool = False,
+        include_steps: bool = False,
+    ) -> None:
+        """
+        导出批量汇总为CSV文件
+        
+        Args:
+            results: 模拟结果列表
+            filepath: 输出CSV文件路径
+            sort_by: 排序字段名
+            sort_ascending: 是否升序排列
+            include_steps: 是否包含每步的情绪分数（会产生多行列）
+        """
+        summaries = BatchSummarizer.summarize(results, sort_by, sort_ascending)
+
+        if not summaries:
+            return
+
+        fieldnames = list(summaries[0].keys())
+
+        with open(filepath, "w", encoding="utf-8-sig", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            for summary in summaries:
+                writer.writerow(summary)
+
+    @staticmethod
+    def print_summary(
+        results: List[SimulationResult],
+        sort_by: Optional[str] = None,
+        sort_ascending: bool = False,
+        top_n: Optional[int] = None,
+        use_color: bool = True,
+    ) -> str:
+        """
+        打印批量汇总结果到终端
+        
+        Args:
+            results: 模拟结果列表
+            sort_by: 排序字段名
+            sort_ascending: 是否升序排列
+            top_n: 只显示前N条结果
+            use_color: 是否使用彩色输出
+        
+        Returns:
+            格式化的汇总字符串
+        """
+        summaries = BatchSummarizer.summarize(results, sort_by, sort_ascending)
+
+        if top_n is not None:
+            summaries = summaries[:top_n]
+
+        lines = []
+        lines.append("=" * 80)
+        sort_info = f" (按 {sort_by} {'升序' if sort_ascending else '降序'})" if sort_by else ""
+        lines.append(f"批量模拟结果汇总{sort_info}")
+        lines.append("=" * 80)
+
+        if not summaries:
+            lines.append("无数据")
+            return "\n".join(lines)
+
+        headers = ["#", "初始句子", "最终句子", "变化次数"]
+        dim_names = [d.name for d in results[0].dimensions]
+        for dim_name in dim_names:
+            headers.append(f"{dim_name}变化")
+            headers.append(f"{dim_name}|min|max")
+
+        col_widths = [4, 25, 25, 10] + [12, 18] * len(dim_names)
+
+        header_line = "".join(h.ljust(w) for h, w in zip(headers, col_widths))
+        lines.append(header_line)
+        lines.append("-" * 80)
+
+        for i, summary in enumerate(summaries, 1):
+            row = [
+                str(i),
+                summary["initial_sentence"][:23] + "..." if len(summary["initial_sentence"]) > 25 else summary["initial_sentence"],
+                summary["final_sentence"][:23] + "..." if len(summary["final_sentence"]) > 25 else summary["final_sentence"],
+                str(summary["changes_count"]),
+            ]
+
+            for dim_name in dim_names:
+                change = summary.get(f"{dim_name}_change", 0)
+                min_val = summary.get(f"{dim_name}_min", 0)
+                max_val = summary.get(f"{dim_name}_max", 0)
+                change_str = f"{change:+.2f}"
+                range_str = f"{min_val:+.1f}|{max_val:+.1f}"
+
+                if use_color:
+                    if change > 0:
+                        change_str = f"\033[92m{change_str}\033[0m"
+                    elif change < 0:
+                        change_str = f"\033[91m{change_str}\033[0m"
+
+                row.append(change_str)
+                row.append(range_str)
+
+            row_line = "".join(str(c).ljust(w) for c, w in zip(row, col_widths))
+            lines.append(row_line)
+
+        lines.append("=" * 80)
+        return "\n".join(lines)
+
+
+class CSVExporter:
+    """
+    CSV导出器
+    支持将模拟结果导出为各种格式的CSV
+    """
+
+    @staticmethod
+    def export_timeseries(
+        result: SimulationResult,
+        filepath: str,
+    ) -> None:
+        """
+        导出单个结果的时间序列数据为CSV
+        
+        列: step, sentence, changed_word, [各维度分数...]
+        """
+        with open(filepath, "w", encoding="utf-8-sig", newline="") as f:
+            fieldnames = ["step", "sentence", "changed_word"]
+            for dim in result.dimensions:
+                fieldnames.append(dim.name)
+
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+
+            for step in result.steps:
+                row = {
+                    "step": step.step,
+                    "sentence": step.modified_sentence,
+                    "changed_word": f"{step.changed_word[0]}→{step.changed_word[1]}" if step.changed_word else "",
+                }
+                for dim in result.dimensions:
+                    row[dim.name] = step.emotion_scores.get(dim.name, 0.0)
+                writer.writerow(row)
+
+    @staticmethod
+    def export_batch_timeseries(
+        results: List[SimulationResult],
+        filepath: str,
+    ) -> None:
+        """
+        导出批量结果的时间序列数据为CSV
+        
+        列: result_id, initial_sentence, step, sentence, changed_word, [各维度分数...]
+        """
+        if not results:
+            return
+
+        with open(filepath, "w", encoding="utf-8-sig", newline="") as f:
+            fieldnames = ["result_id", "initial_sentence", "step", "sentence", "changed_word"]
+            for dim in results[0].dimensions:
+                fieldnames.append(dim.name)
+
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+
+            for result_id, result in enumerate(results, 1):
+                for step in result.steps:
+                    row = {
+                        "result_id": result_id,
+                        "initial_sentence": result.initial_sentence,
+                        "step": step.step,
+                        "sentence": step.modified_sentence,
+                        "changed_word": f"{step.changed_word[0]}→{step.changed_word[1]}" if step.changed_word else "",
+                    }
+                    for dim in results[0].dimensions:
+                        row[dim.name] = step.emotion_scores.get(dim.name, 0.0)
+                    writer.writerow(row)

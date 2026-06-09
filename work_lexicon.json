@@ -1,0 +1,436 @@
+{
+  "dimensions": [
+    {
+      "name": "work_pressure",
+      "low_label": "轻松",
+      "high_label": "压力大",
+      "min_val": -5.0,
+      "max_val": 5.0
+    },
+    {
+      "name": "satisfaction",
+      "low_label": "不满",
+      "high_label": "满意",
+      "min_val": -5.0,
+      "max_val": 5.0
+    },
+    {
+      "name": "tension",
+      "low_label": "放松",
+      "high_label": "紧张",
+      "min_val": -5.0,
+      "max_val": 5.0
+    }
+  ],
+  "synonym_groups": [
+    {
+      "keyword": "工作负荷",
+      "entries": [
+        {
+          "word": "清闲",
+          "emotion_scores": {
+            "positive_negative": 2.0,
+            "anger_calm": 2.0,
+            "excitement_calm": -1.0,
+            "work_pressure": -4.5,
+            "satisfaction": 2.0,
+            "tension": -3.5
+          },
+          "intensity": 1.2
+        },
+        {
+          "word": "轻松",
+          "emotion_scores": {
+            "positive_negative": 2.0,
+            "anger_calm": 2.5,
+            "excitement_calm": 1.0,
+            "work_pressure": -3.5,
+            "satisfaction": 1.5,
+            "tension": -2.5
+          },
+          "intensity": 1.0
+        },
+        {
+          "word": "还好",
+          "emotion_scores": {
+            "positive_negative": 0.5,
+            "anger_calm": 1.5,
+            "excitement_calm": 0.0,
+            "work_pressure": -1.0,
+            "satisfaction": 0.5,
+            "tension": -0.5
+          },
+          "intensity": 0.9
+        },
+        {
+          "word": "正常",
+          "emotion_scores": {
+            "positive_negative": 0.0,
+            "anger_calm": 1.0,
+            "excitement_calm": 0.0,
+            "work_pressure": 0.5,
+            "satisfaction": 0.0,
+            "tension": 0.5
+          },
+          "intensity": 0.8
+        },
+        {
+          "word": "有点忙",
+          "emotion_scores": {
+            "positive_negative": 0.0,
+            "anger_calm": 0.0,
+            "excitement_calm": 1.0,
+            "work_pressure": 1.5,
+            "satisfaction": 0.0,
+            "tension": 1.0
+          },
+          "intensity": 0.9
+        },
+        {
+          "word": "忙",
+          "emotion_scores": {
+            "positive_negative": -0.5,
+            "anger_calm": -0.5,
+            "excitement_calm": 1.5,
+            "work_pressure": 2.5,
+            "satisfaction": -0.5,
+            "tension": 2.0
+          },
+          "intensity": 1.0
+        },
+        {
+          "word": "很忙",
+          "emotion_scores": {
+            "positive_negative": -2.0,
+            "anger_calm": -1.5,
+            "excitement_calm": 2.5,
+            "work_pressure": 3.5,
+            "satisfaction": -2.0,
+            "tension": 3.5
+          },
+          "intensity": 1.2
+        },
+        {
+          "word": "忙不过来",
+          "emotion_scores": {
+            "positive_negative": -4.0,
+            "anger_calm": -3.0,
+            "excitement_calm": 3.5,
+            "work_pressure": 4.8,
+            "satisfaction": -4.0,
+            "tension": 4.5
+          },
+          "intensity": 1.5
+        }
+      ]
+    },
+    {
+      "keyword": "工作难度",
+      "entries": [
+        {
+          "word": "简单",
+          "emotion_scores": {
+            "positive_negative": 2.5,
+            "anger_calm": 2.0,
+            "excitement_calm": -1.5,
+            "work_pressure": -3.0,
+            "satisfaction": 2.5,
+            "tension": -3.0
+          },
+          "intensity": 1.1
+        },
+        {
+          "word": "容易",
+          "emotion_scores": {
+            "positive_negative": 2.0,
+            "anger_calm": 1.5,
+            "excitement_calm": -1.0,
+            "work_pressure": -2.5,
+            "satisfaction": 2.0,
+            "tension": -2.5
+          },
+          "intensity": 1.0
+        },
+        {
+          "word": "一般",
+          "emotion_scores": {
+            "positive_negative": 0.0,
+            "anger_calm": 0.5,
+            "excitement_calm": 0.0,
+            "work_pressure": -0.5,
+            "satisfaction": 0.0,
+            "tension": 0.0
+          },
+          "intensity": 0.8
+        },
+        {
+          "word": "有点难",
+          "emotion_scores": {
+            "positive_negative": -0.5,
+            "anger_calm": 0.0,
+            "excitement_calm": 0.5,
+            "work_pressure": 1.0,
+            "satisfaction": -0.5,
+            "tension": 1.0
+          },
+          "intensity": 0.9
+        },
+        {
+          "word": "难",
+          "emotion_scores": {
+            "positive_negative": -1.5,
+            "anger_calm": -0.5,
+            "excitement_calm": 1.0,
+            "work_pressure": 2.0,
+            "satisfaction": -1.5,
+            "tension": 2.0
+          },
+          "intensity": 1.0
+        },
+        {
+          "word": "很困难",
+          "emotion_scores": {
+            "positive_negative": -3.0,
+            "anger_calm": -1.5,
+            "excitement_calm": 2.0,
+            "work_pressure": 3.5,
+            "satisfaction": -3.0,
+            "tension": 3.5
+          },
+          "intensity": 1.3
+        },
+        {
+          "word": "非常棘手",
+          "emotion_scores": {
+            "positive_negative": -4.0,
+            "anger_calm": -2.5,
+            "excitement_calm": 3.0,
+            "work_pressure": 4.5,
+            "satisfaction": -4.0,
+            "tension": 4.5
+          },
+          "intensity": 1.4
+        },
+        {
+          "word": "不可能完成",
+          "emotion_scores": {
+            "positive_negative": -5.0,
+            "anger_calm": -4.0,
+            "excitement_calm": 4.0,
+            "work_pressure": 5.0,
+            "satisfaction": -5.0,
+            "tension": 5.0
+          },
+          "intensity": 1.5
+        }
+      ]
+    },
+    {
+      "keyword": "工作满意度",
+      "entries": [
+        {
+          "word": "痛恨",
+          "emotion_scores": {
+            "positive_negative": -5.0,
+            "anger_calm": -4.0,
+            "excitement_calm": 2.0,
+            "work_pressure": 4.0,
+            "satisfaction": -5.0,
+            "tension": 4.0
+          },
+          "intensity": 1.5
+        },
+        {
+          "word": "讨厌",
+          "emotion_scores": {
+            "positive_negative": -3.5,
+            "anger_calm": -2.0,
+            "excitement_calm": 0.5,
+            "work_pressure": 3.0,
+            "satisfaction": -3.5,
+            "tension": 2.5
+          },
+          "intensity": 1.2
+        },
+        {
+          "word": "不满",
+          "emotion_scores": {
+            "positive_negative": -2.0,
+            "anger_calm": -1.0,
+            "excitement_calm": 0.0,
+            "work_pressure": 2.0,
+            "satisfaction": -2.0,
+            "tension": 1.5
+          },
+          "intensity": 1.0
+        },
+        {
+          "word": "一般",
+          "emotion_scores": {
+            "positive_negative": 0.0,
+            "anger_calm": 0.5,
+            "excitement_calm": 0.0,
+            "work_pressure": 0.5,
+            "satisfaction": 0.0,
+            "tension": 0.5
+          },
+          "intensity": 0.8
+        },
+        {
+          "word": "满意",
+          "emotion_scores": {
+            "positive_negative": 2.5,
+            "anger_calm": 1.5,
+            "excitement_calm": 1.5,
+            "work_pressure": -1.0,
+            "satisfaction": 2.5,
+            "tension": -1.0
+          },
+          "intensity": 1.0
+        },
+        {
+          "word": "很满意",
+          "emotion_scores": {
+            "positive_negative": 3.5,
+            "anger_calm": 2.0,
+            "excitement_calm": 2.5,
+            "work_pressure": -2.5,
+            "satisfaction": 3.5,
+            "tension": -2.5
+          },
+          "intensity": 1.2
+        },
+        {
+          "word": "热爱",
+          "emotion_scores": {
+            "positive_negative": 4.5,
+            "anger_calm": 2.5,
+            "excitement_calm": 3.5,
+            "work_pressure": -3.5,
+            "satisfaction": 4.5,
+            "tension": -3.5
+          },
+          "intensity": 1.4
+        },
+        {
+          "word": "充满热情",
+          "emotion_scores": {
+            "positive_negative": 5.0,
+            "anger_calm": 3.0,
+            "excitement_calm": 4.5,
+            "work_pressure": -4.5,
+            "satisfaction": 5.0,
+            "tension": -4.5
+          },
+          "intensity": 1.5
+        }
+      ]
+    },
+    {
+      "keyword": "疲劳程度",
+      "entries": [
+        {
+          "word": "精力充沛",
+          "emotion_scores": {
+            "positive_negative": 3.5,
+            "anger_calm": 2.0,
+            "excitement_calm": 3.0,
+            "work_pressure": -4.0,
+            "satisfaction": 3.0,
+            "tension": -4.0
+          },
+          "intensity": 1.4
+        },
+        {
+          "word": "精神",
+          "emotion_scores": {
+            "positive_negative": 2.5,
+            "anger_calm": 2.0,
+            "excitement_calm": 2.0,
+            "work_pressure": -3.0,
+            "satisfaction": 2.0,
+            "tension": -3.0
+          },
+          "intensity": 1.2
+        },
+        {
+          "word": "轻松",
+          "emotion_scores": {
+            "positive_negative": 2.0,
+            "anger_calm": 2.5,
+            "excitement_calm": 1.0,
+            "work_pressure": -2.0,
+            "satisfaction": 1.5,
+            "tension": -2.0
+          },
+          "intensity": 1.0
+        },
+        {
+          "word": "还好",
+          "emotion_scores": {
+            "positive_negative": 0.5,
+            "anger_calm": 1.5,
+            "excitement_calm": 0.0,
+            "work_pressure": -0.5,
+            "satisfaction": 0.5,
+            "tension": -0.5
+          },
+          "intensity": 0.9
+        },
+        {
+          "word": "有点累",
+          "emotion_scores": {
+            "positive_negative": -0.5,
+            "anger_calm": 0.5,
+            "excitement_calm": -1.0,
+            "work_pressure": 1.0,
+            "satisfaction": -0.5,
+            "tension": 1.0
+          },
+          "intensity": 0.9
+        },
+        {
+          "word": "累",
+          "emotion_scores": {
+            "positive_negative": -1.5,
+            "anger_calm": 0.0,
+            "excitement_calm": -2.0,
+            "work_pressure": 2.0,
+            "satisfaction": -1.5,
+            "tension": 2.0
+          },
+          "intensity": 1.0
+        },
+        {
+          "word": "很累",
+          "emotion_scores": {
+            "positive_negative": -3.0,
+            "anger_calm": -1.0,
+            "excitement_calm": -3.0,
+            "work_pressure": 3.5,
+            "satisfaction": -3.0,
+            "tension": 3.5
+          },
+          "intensity": 1.2
+        },
+        {
+          "word": "疲惫不堪",
+          "emotion_scores": {
+            "positive_negative": -4.5,
+            "anger_calm": -2.0,
+            "excitement_calm": -4.5,
+            "work_pressure": 4.8,
+            "satisfaction": -4.5,
+            "tension": 4.5
+          },
+          "intensity": 1.5
+        }
+      ]
+    }
+  ],
+  "neutral_words": [
+    "工作", "任务", "项目", "会议", "报告", "邮件", "同事", "领导",
+    "客户", "需求", " deadline", "截止日期", "今天", "明天", "昨天",
+    "上午", "下午", "晚上", "周一", "周二", "周三", "周四", "周五"
+  ]
+}

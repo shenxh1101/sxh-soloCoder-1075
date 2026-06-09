@@ -13,6 +13,7 @@ from .models import (
     SimulationResult,
     DefaultDimensions,
     create_default_synonym_groups,
+    load_lexicon_from_file,
 )
 from .scorer import EmotionScorer
 
@@ -200,3 +201,44 @@ class EmotionSimulator:
         self.dimensions.append(dimension)
         self.scorer.add_custom_dimension(dimension)
         self.drift_direction[dimension.name] = 0.0
+
+    @classmethod
+    def from_lexicon_file(
+        cls,
+        lexicon_filepath: str,
+        merge_default: bool = True,
+        change_probability: float = 0.6,
+        magnitude: float = 0.5,
+        drift_strength: float = 0.0,
+        random_seed: Optional[int] = None,
+    ) -> "EmotionSimulator":
+        """
+        从词库配置文件创建模拟器
+        
+        Args:
+            lexicon_filepath: 词库JSON配置文件路径
+            merge_default: 是否合并默认词库
+            change_probability: 变化概率
+            magnitude: 变化幅度
+            drift_strength: 漂移强度
+            random_seed: 随机种子
+        
+        Returns:
+            EmotionSimulator实例
+        """
+        dimensions, synonym_groups, neutral_words = load_lexicon_from_file(
+            lexicon_filepath, merge_default=merge_default
+        )
+
+        simulator = cls(
+            dimensions=dimensions,
+            synonym_groups=synonym_groups,
+            change_probability=change_probability,
+            magnitude=magnitude,
+            drift_strength=drift_strength,
+            random_seed=random_seed,
+        )
+
+        simulator.scorer.neutral_words = neutral_words
+
+        return simulator

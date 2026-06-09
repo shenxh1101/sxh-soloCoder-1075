@@ -6,6 +6,8 @@
 from dataclasses import dataclass, field
 from typing import Dict, List, Tuple, Optional
 from enum import Enum
+import json
+import os
 
 
 class EmotionDimension:
@@ -304,3 +306,191 @@ def create_default_neutral_words() -> List[str]:
         "一", "二", "三", "四", "五", "六", "七", "八", "九", "十",
         "个", "只", "条", "件", "本", "张", "篇", "首", "幅", "座",
     ]
+
+
+def load_dimensions_from_config(config: Dict) -> List[EmotionDimension]:
+    """
+    从配置字典加载情绪维度
+    
+    配置格式:
+    {
+        "dimensions": [
+            {
+                "name": "work_pressure",
+                "low_label": "轻松",
+                "high_label": "压力大",
+                "min_val": -5.0,
+                "max_val": 5.0
+            }
+        ]
+    }
+    """
+    dimensions = []
+    dim_configs = config.get("dimensions", [])
+    for dim_config in dim_configs:
+        dimension = EmotionDimension(
+            name=dim_config["name"],
+            low_label=dim_config.get("low_label", "低"),
+            high_label=dim_config.get("high_label", "高"),
+            min_val=dim_config.get("min_val", -5.0),
+            max_val=dim_config.get("max_val", 5.0),
+        )
+        dimensions.append(dimension)
+    return dimensions
+
+
+def load_synonym_groups_from_config(config: Dict) -> List[SynonymGroup]:
+    """
+    从配置字典加载同义词组
+    
+    配置格式:
+    {
+        "synonym_groups": [
+            {
+                "keyword": "工作负荷",
+                "entries": [
+                    {
+                        "word": "清闲",
+                        "emotion_scores": {
+                            "positive_negative": 2.0,
+                            "work_pressure": -4.0
+                        },
+                        "intensity": 1.2
+                    }
+                ]
+            }
+        ]
+    }
+    """
+    groups = []
+    group_configs = config.get("synonym_groups", [])
+    for group_config in group_configs:
+        entries = []
+        for entry_config in group_config["entries"]:
+            entry = SynonymEntry(
+                word=entry_config["word"],
+                emotion_scores=entry_config.get("emotion_scores", {}),
+                intensity=entry_config.get("intensity", 1.0),
+            )
+            entries.append(entry)
+        
+        group = SynonymGroup(
+            keyword=group_config["keyword"],
+            entries=entries,
+        )
+        groups.append(group)
+    return groups
+
+
+def load_neutral_words_from_config(config: Dict) -> List[str]:
+    """
+    从配置字典加载中性词
+    """
+    return config.get("neutral_words", [])
+
+
+def load_config_from_file(filepath: str) -> Dict:
+    """
+    从JSON文件加载配置
+    """
+    if not os.path.exists(filepath):
+        raise FileNotFoundError(f"配置文件不存在: {filepath}")
+    
+    with open(filepath, "r", encoding="utf-8") as f:
+        config = json.load(f)
+    
+    return config
+
+
+def load_lexicon_from_file(
+    filepath: str,
+    merge_default: bool = True
+) -> Tuple[List[EmotionDimension], List[SynonymGroup], List[str]]:
+    """
+    从文件加载完整词库配置
+    
+    Args:
+        filepath: JSON配置文件路径
+        merge_default: 是否合并默认词库（默认维度、同义词组、中性词）
+    
+    Returns:
+        (dimensions, synonym_groups, neutral_words)
+    """
+    config = load_config_from_file(filepath)
+    
+    dimensions = load_dimensions_from_config(config)
+    synonym_groups = load_synonym_groups_from_config(config)
+    neutral_words = load_neutral_words_from_config(config)
+    
+    if merge_default:
+        default_dims = DefaultDimensions.get_defaults()
+        existing_dim_names = {d.name for d in dimensions}
+        for dim in default_dims:
+            if dim.name not in existing_dim_names:
+                dimensions.append(dim)
+        
+        default_groups = create_default_synonym_groups()
+        existing_keywords = {g.keyword for g in synonym_groups}
+        existing_words = set()
+        for g in synonym_groups:
+            for e in g.entries:
+                existing_words.add(e.word)
+        
+        for group in default_groups:
+            if group.keyword not in existing_keywords:
+                has_conflict = any(e.word in existing_words for e in group.entries)
+                if not has_conflict:
+                    synonym_groups.append(group)
+        
+        default_neutral = create_default_neutral_words()
+        neutral_words = list(set(neutral_words + default_neutral))
+    
+    return dimensions, synonym_groups, neutral_words
+
+
+def dimension_to_dict(dimension: EmotionDimension) -> Dict:
+    """将情绪维度转换为字典（用于配置导出）"""
+    return {
+        "name": dimension.name,
+        "low_label": dimension.low_label,
+        "high_label": dimension.high_label,
+        "min_val": dimension.min_val,
+        "max_val": dimension.max_val,
+    }
+
+
+def synonym_entry_to_dict(entry: SynonymEntry) -> Dict:
+    """将同义词条目转换为字典"""
+    return {
+        "word": entry.word,
+        "emotion_scores": entry.emotion_scores,
+        "intensity": entry.intensity,
+    }
+
+
+def synonym_group_to_dict(group: SynonymGroup) -> Dict:
+    """将同义词组转换为字典"""
+    return {
+        "keyword": group.keyword,
+        "entries": [synonym_entry_to_dict(e) for e in group.entries],
+    }
+
+
+def export_lexicon_to_file(
+    filepath: str,
+    dimensions: List[EmotionDimension],
+    synonym_groups: List[SynonymGroup],
+    neutral_words: Optional[List[str]] = None,
+) -> None:
+    """
+    导出词库配置到JSON文件
+    """
+    config = {
+        "dimensions": [dimension_to_dict(d) for d in dimensions],
+        "synonym_groups": [synonym_group_to_dict(g) for g in synonym_groups],
+    }
+    if neutral_words is not None:
+        config["neutral_words"] = neutral_words
+    
+    with open(filepath, "w", encoding="utf-8") as f:
+        json.dump(config, f, ensure_ascii=False, indent=2)

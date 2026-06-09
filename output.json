@@ -1,0 +1,2324 @@
+{
+  "count": 10,
+  "results": [
+    {
+      "initial_sentence": "今天天气不错",
+      "final_sentence": "今天天气极差",
+      "locked_words": [],
+      "dimensions": [
+        {
+          "name": "positive_negative",
+          "low_label": "消极",
+          "high_label": "积极",
+          "min_val": -5.0,
+          "max_val": 5.0
+        },
+        {
+          "name": "anger_calm",
+          "low_label": "愤怒",
+          "high_label": "平静",
+          "min_val": -5.0,
+          "max_val": 5.0
+        },
+        {
+          "name": "excitement_calm",
+          "low_label": "平静",
+          "high_label": "激动",
+          "min_val": -5.0,
+          "max_val": 5.0
+        }
+      ],
+      "steps": [
+        {
+          "step": 1,
+          "original_sentence": "今天天气不错",
+          "modified_sentence": "今天天气很好",
+          "emotion_scores": {
+            "positive_negative": 3.378787878787879,
+            "anger_calm": 1.1515151515151516,
+            "excitement_calm": 1.696969696969697
+          },
+          "locked_words": [],
+          "changed_word": {
+            "original": "不错",
+            "new": "很好"
+          }
+        },
+        {
+          "step": 2,
+          "original_sentence": "今天天气很好",
+          "modified_sentence": "今天天气很好",
+          "emotion_scores": {
+            "positive_negative": 3.378787878787879,
+            "anger_calm": 1.1515151515151516,
+            "excitement_calm": 1.696969696969697
+          },
+          "locked_words": [],
+          "changed_word": null
+        },
+        {
+          "step": 3,
+          "original_sentence": "今天天气很好",
+          "modified_sentence": "今天天气很好",
+          "emotion_scores": {
+            "positive_negative": 3.378787878787879,
+            "anger_calm": 1.1515151515151516,
+            "excitement_calm": 1.696969696969697
+          },
+          "locked_words": [],
+          "changed_word": null
+        },
+        {
+          "step": 4,
+          "original_sentence": "今天天气很好",
+          "modified_sentence": "今天天气较差",
+          "emotion_scores": {
+            "positive_negative": -1.5,
+            "anger_calm": 0.0,
+            "excitement_calm": -0.5
+          },
+          "locked_words": [],
+          "changed_word": {
+            "original": "很好",
+            "new": "较差"
+          }
+        },
+        {
+          "step": 5,
+          "original_sentence": "今天天气较差",
+          "modified_sentence": "今天天气极差",
+          "emotion_scores": {
+            "positive_negative": -5.0,
+            "anger_calm": -3.0,
+            "excitement_calm": -2.0
+          },
+          "locked_words": [],
+          "changed_word": {
+            "original": "较差",
+            "new": "极差"
+          }
+        },
+        {
+          "step": 6,
+          "original_sentence": "今天天气极差",
+          "modified_sentence": "今天天气很差",
+          "emotion_scores": {
+            "positive_negative": -3.4999999999999996,
+            "anger_calm": -1.5,
+            "excitement_calm": -1.0
+          },
+          "locked_words": [],
+          "changed_word": {
+            "original": "极差",
+            "new": "很差"
+          }
+        },
+        {
+          "step": 7,
+          "original_sentence": "今天天气很差",
+          "modified_sentence": "今天天气极差",
+          "emotion_scores": {
+            "positive_negative": -5.0,
+            "anger_calm": -3.0,
+            "excitement_calm": -2.0
+          },
+          "locked_words": [],
+          "changed_word": {
+            "original": "很差",
+            "new": "极差"
+          }
+        },
+        {
+          "step": 8,
+          "original_sentence": "今天天气极差",
+          "modified_sentence": "今天天气极差",
+          "emotion_scores": {
+            "positive_negative": -5.0,
+            "anger_calm": -3.0,
+            "excitement_calm": -2.0
+          },
+          "locked_words": [],
+          "changed_word": null
+        }
+      ],
+      "emotion_series": {
+        "positive_negative": [
+          3.378787878787879,
+          3.378787878787879,
+          3.378787878787879,
+          -1.5,
+          -5.0,
+          -3.4999999999999996,
+          -5.0,
+          -5.0
+        ],
+        "anger_calm": [
+          1.1515151515151516,
+          1.1515151515151516,
+          1.1515151515151516,
+          0.0,
+          -3.0,
+          -1.5,
+          -3.0,
+          -3.0
+        ],
+        "excitement_calm": [
+          1.696969696969697,
+          1.696969696969697,
+          1.696969696969697,
+          -0.5,
+          -2.0,
+          -1.0,
+          -2.0,
+          -2.0
+        ]
+      },
+      "summary": {
+        "total_steps": 8,
+        "changes_count": 5,
+        "initial_scores": {
+          "positive_negative": 3.378787878787879,
+          "anger_calm": 1.1515151515151516,
+          "excitement_calm": 1.696969696969697
+        },
+        "final_scores": {
+          "positive_negative": -5.0,
+          "anger_calm": -3.0,
+          "excitement_calm": -2.0
+        },
+        "all_changes": [
+          {
+            "step": 1,
+            "original": "不错",
+            "new": "很好"
+          },
+          {
+            "step": 4,
+            "original": "很好",
+            "new": "较差"
+          },
+          {
+            "step": 5,
+            "original": "较差",
+            "new": "极差"
+          },
+          {
+            "step": 6,
+            "original": "极差",
+            "new": "很差"
+          },
+          {
+            "step": 7,
+            "original": "很差",
+            "new": "极差"
+          }
+        ],
+        "score_differences": {
+          "positive_negative": {
+            "start": 3.378787878787879,
+            "end": -5.0,
+            "change": -8.378787878787879,
+            "min": -5.0,
+            "max": 3.378787878787879,
+            "mean": -1.2329545454545454
+          },
+          "anger_calm": {
+            "start": 1.1515151515151516,
+            "end": -3.0,
+            "change": -4.151515151515151,
+            "min": -3.0,
+            "max": 1.1515151515151516,
+            "mean": -0.8806818181818181
+          },
+          "excitement_calm": {
+            "start": 1.696969696969697,
+            "end": -2.0,
+            "change": -3.6969696969696972,
+            "min": -2.0,
+            "max": 1.696969696969697,
+            "mean": -0.30113636363636365
+          }
+        }
+      }
+    },
+    {
+      "initial_sentence": "我喜欢这个电影",
+      "final_sentence": "我喜爱这个电影",
+      "locked_words": [],
+      "dimensions": [
+        {
+          "name": "positive_negative",
+          "low_label": "消极",
+          "high_label": "积极",
+          "min_val": -5.0,
+          "max_val": 5.0
+        },
+        {
+          "name": "anger_calm",
+          "low_label": "愤怒",
+          "high_label": "平静",
+          "min_val": -5.0,
+          "max_val": 5.0
+        },
+        {
+          "name": "excitement_calm",
+          "low_label": "平静",
+          "high_label": "激动",
+          "min_val": -5.0,
+          "max_val": 5.0
+        }
+      ],
+      "steps": [
+        {
+          "step": 1,
+          "original_sentence": "我喜欢这个电影",
+          "modified_sentence": "我挚爱这个电影",
+          "emotion_scores": {
+            "positive_negative": 5.0,
+            "anger_calm": 3.0,
+            "excitement_calm": 4.0
+          },
+          "locked_words": [],
+          "changed_word": {
+            "original": "喜欢",
+            "new": "挚爱"
+          }
+        },
+        {
+          "step": 2,
+          "original_sentence": "我挚爱这个电影",
+          "modified_sentence": "我挚爱这个电影",
+          "emotion_scores": {
+            "positive_negative": 5.0,
+            "anger_calm": 3.0,
+            "excitement_calm": 4.0
+          },
+          "locked_words": [],
+          "changed_word": null
+        },
+        {
+          "step": 3,
+          "original_sentence": "我挚爱这个电影",
+          "modified_sentence": "我挚爱这个电影",
+          "emotion_scores": {
+            "positive_negative": 5.0,
+            "anger_calm": 3.0,
+            "excitement_calm": 4.0
+          },
+          "locked_words": [],
+          "changed_word": null
+        },
+        {
+          "step": 4,
+          "original_sentence": "我挚爱这个电影",
+          "modified_sentence": "我挚爱这个电影",
+          "emotion_scores": {
+            "positive_negative": 5.0,
+            "anger_calm": 3.0,
+            "excitement_calm": 4.0
+          },
+          "locked_words": [],
+          "changed_word": null
+        },
+        {
+          "step": 5,
+          "original_sentence": "我挚爱这个电影",
+          "modified_sentence": "我挚爱这个电影",
+          "emotion_scores": {
+            "positive_negative": 5.0,
+            "anger_calm": 3.0,
+            "excitement_calm": 4.0
+          },
+          "locked_words": [],
+          "changed_word": null
+        },
+        {
+          "step": 6,
+          "original_sentence": "我挚爱这个电影",
+          "modified_sentence": "我挚爱这个电影",
+          "emotion_scores": {
+            "positive_negative": 5.0,
+            "anger_calm": 3.0,
+            "excitement_calm": 4.0
+          },
+          "locked_words": [],
+          "changed_word": null
+        },
+        {
+          "step": 7,
+          "original_sentence": "我挚爱这个电影",
+          "modified_sentence": "我挚爱这个电影",
+          "emotion_scores": {
+            "positive_negative": 5.0,
+            "anger_calm": 3.0,
+            "excitement_calm": 4.0
+          },
+          "locked_words": [],
+          "changed_word": null
+        },
+        {
+          "step": 8,
+          "original_sentence": "我挚爱这个电影",
+          "modified_sentence": "我喜爱这个电影",
+          "emotion_scores": {
+            "positive_negative": 3.5000000000000004,
+            "anger_calm": 2.0,
+            "excitement_calm": 2.5
+          },
+          "locked_words": [],
+          "changed_word": {
+            "original": "挚爱",
+            "new": "喜爱"
+          }
+        }
+      ],
+      "emotion_series": {
+        "positive_negative": [
+          5.0,
+          5.0,
+          5.0,
+          5.0,
+          5.0,
+          5.0,
+          5.0,
+          3.5000000000000004
+        ],
+        "anger_calm": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          2.0
+        ],
+        "excitement_calm": [
+          4.0,
+          4.0,
+          4.0,
+          4.0,
+          4.0,
+          4.0,
+          4.0,
+          2.5
+        ]
+      },
+      "summary": {
+        "total_steps": 8,
+        "changes_count": 2,
+        "initial_scores": {
+          "positive_negative": 5.0,
+          "anger_calm": 3.0,
+          "excitement_calm": 4.0
+        },
+        "final_scores": {
+          "positive_negative": 3.5000000000000004,
+          "anger_calm": 2.0,
+          "excitement_calm": 2.5
+        },
+        "all_changes": [
+          {
+            "step": 1,
+            "original": "喜欢",
+            "new": "挚爱"
+          },
+          {
+            "step": 8,
+            "original": "挚爱",
+            "new": "喜爱"
+          }
+        ],
+        "score_differences": {
+          "positive_negative": {
+            "start": 5.0,
+            "end": 3.5000000000000004,
+            "change": -1.4999999999999996,
+            "min": 3.5000000000000004,
+            "max": 5.0,
+            "mean": 4.8125
+          },
+          "anger_calm": {
+            "start": 3.0,
+            "end": 2.0,
+            "change": -1.0,
+            "min": 2.0,
+            "max": 3.0,
+            "mean": 2.875
+          },
+          "excitement_calm": {
+            "start": 4.0,
+            "end": 2.5,
+            "change": -1.5,
+            "min": 2.5,
+            "max": 4.0,
+            "mean": 3.8125
+          }
+        }
+      }
+    },
+    {
+      "initial_sentence": "他看起来很生气",
+      "final_sentence": "他看起来很开心",
+      "locked_words": [],
+      "dimensions": [
+        {
+          "name": "positive_negative",
+          "low_label": "消极",
+          "high_label": "积极",
+          "min_val": -5.0,
+          "max_val": 5.0
+        },
+        {
+          "name": "anger_calm",
+          "low_label": "愤怒",
+          "high_label": "平静",
+          "min_val": -5.0,
+          "max_val": 5.0
+        },
+        {
+          "name": "excitement_calm",
+          "low_label": "平静",
+          "high_label": "激动",
+          "min_val": -5.0,
+          "max_val": 5.0
+        }
+      ],
+      "steps": [
+        {
+          "step": 1,
+          "original_sentence": "他看起来很生气",
+          "modified_sentence": "他看起来很生气",
+          "emotion_scores": {
+            "positive_negative": -2.0,
+            "anger_calm": -3.0,
+            "excitement_calm": 1.0
+          },
+          "locked_words": [],
+          "changed_word": null
+        },
+        {
+          "step": 2,
+          "original_sentence": "他看起来很生气",
+          "modified_sentence": "他看起来很愤怒",
+          "emotion_scores": {
+            "positive_negative": -3.4999999999999996,
+            "anger_calm": -4.5,
+            "excitement_calm": 2.5
+          },
+          "locked_words": [],
+          "changed_word": {
+            "original": "生气",
+            "new": "愤怒"
+          }
+        },
+        {
+          "step": 3,
+          "original_sentence": "他看起来很愤怒",
+          "modified_sentence": "他看起来很开心",
+          "emotion_scores": {
+            "positive_negative": 2.0,
+            "anger_calm": 1.0,
+            "excitement_calm": 1.5
+          },
+          "locked_words": [],
+          "changed_word": {
+            "original": "愤怒",
+            "new": "开心"
+          }
+        },
+        {
+          "step": 4,
+          "original_sentence": "他看起来很开心",
+          "modified_sentence": "他看起来很平静",
+          "emotion_scores": {
+            "positive_negative": 0.0,
+            "anger_calm": 3.0,
+            "excitement_calm": -2.0
+          },
+          "locked_words": [],
+          "changed_word": {
+            "original": "开心",
+            "new": "平静"
+          }
+        },
+        {
+          "step": 5,
+          "original_sentence": "他看起来很平静",
+          "modified_sentence": "他看起来很平静",
+          "emotion_scores": {
+            "positive_negative": 0.0,
+            "anger_calm": 3.0,
+            "excitement_calm": -2.0
+          },
+          "locked_words": [],
+          "changed_word": null
+        },
+        {
+          "step": 6,
+          "original_sentence": "他看起来很平静",
+          "modified_sentence": "他看起来很开心",
+          "emotion_scores": {
+            "positive_negative": 2.0,
+            "anger_calm": 1.0,
+            "excitement_calm": 1.5
+          },
+          "locked_words": [],
+          "changed_word": {
+            "original": "平静",
+            "new": "开心"
+          }
+        },
+        {
+          "step": 7,
+          "original_sentence": "他看起来很开心",
+          "modified_sentence": "他看起来很开心",
+          "emotion_scores": {
+            "positive_negative": 2.0,
+            "anger_calm": 1.0,
+            "excitement_calm": 1.5
+          },
+          "locked_words": [],
+          "changed_word": null
+        },
+        {
+          "step": 8,
+          "original_sentence": "他看起来很开心",
+          "modified_sentence": "他看起来很开心",
+          "emotion_scores": {
+            "positive_negative": 2.0,
+            "anger_calm": 1.0,
+            "excitement_calm": 1.5
+          },
+          "locked_words": [],
+          "changed_word": null
+        }
+      ],
+      "emotion_series": {
+        "positive_negative": [
+          -2.0,
+          -3.4999999999999996,
+          2.0,
+          0.0,
+          0.0,
+          2.0,
+          2.0,
+          2.0
+        ],
+        "anger_calm": [
+          -3.0,
+          -4.5,
+          1.0,
+          3.0,
+          3.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "excitement_calm": [
+          1.0,
+          2.5,
+          1.5,
+          -2.0,
+          -2.0,
+          1.5,
+          1.5,
+          1.5
+        ]
+      },
+      "summary": {
+        "total_steps": 8,
+        "changes_count": 4,
+        "initial_scores": {
+          "positive_negative": -2.0,
+          "anger_calm": -3.0,
+          "excitement_calm": 1.0
+        },
+        "final_scores": {
+          "positive_negative": 2.0,
+          "anger_calm": 1.0,
+          "excitement_calm": 1.5
+        },
+        "all_changes": [
+          {
+            "step": 2,
+            "original": "生气",
+            "new": "愤怒"
+          },
+          {
+            "step": 3,
+            "original": "愤怒",
+            "new": "开心"
+          },
+          {
+            "step": 4,
+            "original": "开心",
+            "new": "平静"
+          },
+          {
+            "step": 6,
+            "original": "平静",
+            "new": "开心"
+          }
+        ],
+        "score_differences": {
+          "positive_negative": {
+            "start": -2.0,
+            "end": 2.0,
+            "change": 4.0,
+            "min": -3.4999999999999996,
+            "max": 2.0,
+            "mean": 0.31250000000000006
+          },
+          "anger_calm": {
+            "start": -3.0,
+            "end": 1.0,
+            "change": 4.0,
+            "min": -4.5,
+            "max": 3.0,
+            "mean": 0.3125
+          },
+          "excitement_calm": {
+            "start": 1.0,
+            "end": 1.5,
+            "change": 0.5,
+            "min": -2.0,
+            "max": 2.5,
+            "mean": 0.6875
+          }
+        }
+      }
+    },
+    {
+      "initial_sentence": "这个任务有点累",
+      "final_sentence": "这个任务还好",
+      "locked_words": [],
+      "dimensions": [
+        {
+          "name": "positive_negative",
+          "low_label": "消极",
+          "high_label": "积极",
+          "min_val": -5.0,
+          "max_val": 5.0
+        },
+        {
+          "name": "anger_calm",
+          "low_label": "愤怒",
+          "high_label": "平静",
+          "min_val": -5.0,
+          "max_val": 5.0
+        },
+        {
+          "name": "excitement_calm",
+          "low_label": "平静",
+          "high_label": "激动",
+          "min_val": -5.0,
+          "max_val": 5.0
+        }
+      ],
+      "steps": [
+        {
+          "step": 1,
+          "original_sentence": "这个任务有点累",
+          "modified_sentence": "这个任务有点累",
+          "emotion_scores": {
+            "positive_negative": -1.0263157894736843,
+            "anger_calm": 0.2368421052631579,
+            "excitement_calm": -1.5263157894736843
+          },
+          "locked_words": [],
+          "changed_word": null
+        },
+        {
+          "step": 2,
+          "original_sentence": "这个任务有点累",
+          "modified_sentence": "这个任务有点累",
+          "emotion_scores": {
+            "positive_negative": -1.0263157894736843,
+            "anger_calm": 0.2368421052631579,
+            "excitement_calm": -1.5263157894736843
+          },
+          "locked_words": [],
+          "changed_word": null
+        },
+        {
+          "step": 3,
+          "original_sentence": "这个任务有点累",
+          "modified_sentence": "这个任务疲惫不堪",
+          "emotion_scores": {
+            "positive_negative": -4.5,
+            "anger_calm": -2.0,
+            "excitement_calm": -4.5
+          },
+          "locked_words": [],
+          "changed_word": {
+            "original": "有点累",
+            "new": "疲惫不堪"
+          }
+        },
+        {
+          "step": 4,
+          "original_sentence": "这个任务疲惫不堪",
+          "modified_sentence": "这个任务疲惫不堪",
+          "emotion_scores": {
+            "positive_negative": -4.5,
+            "anger_calm": -2.0,
+            "excitement_calm": -4.5
+          },
+          "locked_words": [],
+          "changed_word": null
+        },
+        {
+          "step": 5,
+          "original_sentence": "这个任务疲惫不堪",
+          "modified_sentence": "这个任务有点累",
+          "emotion_scores": {
+            "positive_negative": -1.0263157894736843,
+            "anger_calm": 0.2368421052631579,
+            "excitement_calm": -1.5263157894736843
+          },
+          "locked_words": [],
+          "changed_word": {
+            "original": "疲惫不堪",
+            "new": "有点累"
+          }
+        },
+        {
+          "step": 6,
+          "original_sentence": "这个任务有点累",
+          "modified_sentence": "这个任务有点累",
+          "emotion_scores": {
+            "positive_negative": -1.0263157894736843,
+            "anger_calm": 0.2368421052631579,
+            "excitement_calm": -1.5263157894736843
+          },
+          "locked_words": [],
+          "changed_word": null
+        },
+        {
+          "step": 7,
+          "original_sentence": "这个任务有点累",
+          "modified_sentence": "这个任务有点累",
+          "emotion_scores": {
+            "positive_negative": -1.0263157894736843,
+            "anger_calm": 0.2368421052631579,
+            "excitement_calm": -1.5263157894736843
+          },
+          "locked_words": [],
+          "changed_word": null
+        },
+        {
+          "step": 8,
+          "original_sentence": "这个任务有点累",
+          "modified_sentence": "这个任务还好",
+          "emotion_scores": {
+            "positive_negative": 1.5526315789473686,
+            "anger_calm": 1.236842105263158,
+            "excitement_calm": 0.5263157894736842
+          },
+          "locked_words": [],
+          "changed_word": {
+            "original": "有点累",
+            "new": "还好"
+          }
+        }
+      ],
+      "emotion_series": {
+        "positive_negative": [
+          -1.0263157894736843,
+          -1.0263157894736843,
+          -4.5,
+          -4.5,
+          -1.0263157894736843,
+          -1.0263157894736843,
+          -1.0263157894736843,
+          1.5526315789473686
+        ],
+        "anger_calm": [
+          0.2368421052631579,
+          0.2368421052631579,
+          -2.0,
+          -2.0,
+          0.2368421052631579,
+          0.2368421052631579,
+          0.2368421052631579,
+          1.236842105263158
+        ],
+        "excitement_calm": [
+          -1.5263157894736843,
+          -1.5263157894736843,
+          -4.5,
+          -4.5,
+          -1.5263157894736843,
+          -1.5263157894736843,
+          -1.5263157894736843,
+          0.5263157894736842
+        ]
+      },
+      "summary": {
+        "total_steps": 8,
+        "changes_count": 3,
+        "initial_scores": {
+          "positive_negative": -1.0263157894736843,
+          "anger_calm": 0.2368421052631579,
+          "excitement_calm": -1.5263157894736843
+        },
+        "final_scores": {
+          "positive_negative": 1.5526315789473686,
+          "anger_calm": 1.236842105263158,
+          "excitement_calm": 0.5263157894736842
+        },
+        "all_changes": [
+          {
+            "step": 3,
+            "original": "有点累",
+            "new": "疲惫不堪"
+          },
+          {
+            "step": 5,
+            "original": "疲惫不堪",
+            "new": "有点累"
+          },
+          {
+            "step": 8,
+            "original": "有点累",
+            "new": "还好"
+          }
+        ],
+        "score_differences": {
+          "positive_negative": {
+            "start": -1.0263157894736843,
+            "end": 1.5526315789473686,
+            "change": 2.578947368421053,
+            "min": -4.5,
+            "max": 1.5526315789473686,
+            "mean": -1.5723684210526316
+          },
+          "anger_calm": {
+            "start": 0.2368421052631579,
+            "end": 1.236842105263158,
+            "change": 1.0,
+            "min": -2.0,
+            "max": 1.236842105263158,
+            "mean": -0.19736842105263155
+          },
+          "excitement_calm": {
+            "start": -1.5263157894736843,
+            "end": 0.5263157894736842,
+            "change": 2.0526315789473686,
+            "min": -4.5,
+            "max": 0.5263157894736842,
+            "mean": -2.013157894736842
+          }
+        }
+      }
+    },
+    {
+      "initial_sentence": "速度很快",
+      "final_sentence": "速度飞快",
+      "locked_words": [],
+      "dimensions": [
+        {
+          "name": "positive_negative",
+          "low_label": "消极",
+          "high_label": "积极",
+          "min_val": -5.0,
+          "max_val": 5.0
+        },
+        {
+          "name": "anger_calm",
+          "low_label": "愤怒",
+          "high_label": "平静",
+          "min_val": -5.0,
+          "max_val": 5.0
+        },
+        {
+          "name": "excitement_calm",
+          "low_label": "平静",
+          "high_label": "激动",
+          "min_val": -5.0,
+          "max_val": 5.0
+        }
+      ],
+      "steps": [
+        {
+          "step": 1,
+          "original_sentence": "速度很快",
+          "modified_sentence": "速度飞快",
+          "emotion_scores": {
+            "positive_negative": 2.0833333333333335,
+            "anger_calm": -0.6666666666666665,
+            "excitement_calm": 3.666666666666667
+          },
+          "locked_words": [],
+          "changed_word": {
+            "original": "很快",
+            "new": "飞快"
+          }
+        },
+        {
+          "step": 2,
+          "original_sentence": "速度飞快",
+          "modified_sentence": "速度飞快",
+          "emotion_scores": {
+            "positive_negative": 2.0833333333333335,
+            "anger_calm": -0.6666666666666665,
+            "excitement_calm": 3.666666666666667
+          },
+          "locked_words": [],
+          "changed_word": null
+        },
+        {
+          "step": 3,
+          "original_sentence": "速度飞快",
+          "modified_sentence": "速度飞快",
+          "emotion_scores": {
+            "positive_negative": 2.0833333333333335,
+            "anger_calm": -0.6666666666666665,
+            "excitement_calm": 3.666666666666667
+          },
+          "locked_words": [],
+          "changed_word": null
+        },
+        {
+          "step": 4,
+          "original_sentence": "速度飞快",
+          "modified_sentence": "速度很快",
+          "emotion_scores": {
+            "positive_negative": 1.7727272727272725,
+            "anger_calm": -0.04545454545454544,
+            "excitement_calm": 3.0454545454545454
+          },
+          "locked_words": [],
+          "changed_word": {
+            "original": "飞快",
+            "new": "很快"
+          }
+        },
+        {
+          "step": 5,
+          "original_sentence": "速度很快",
+          "modified_sentence": "速度很快",
+          "emotion_scores": {
+            "positive_negative": 1.7727272727272725,
+            "anger_calm": -0.04545454545454544,
+            "excitement_calm": 3.0454545454545454
+          },
+          "locked_words": [],
+          "changed_word": null
+        },
+        {
+          "step": 6,
+          "original_sentence": "速度很快",
+          "modified_sentence": "速度很快",
+          "emotion_scores": {
+            "positive_negative": 1.7727272727272725,
+            "anger_calm": -0.04545454545454544,
+            "excitement_calm": 3.0454545454545454
+          },
+          "locked_words": [],
+          "changed_word": null
+        },
+        {
+          "step": 7,
+          "original_sentence": "速度很快",
+          "modified_sentence": "速度很快",
+          "emotion_scores": {
+            "positive_negative": 1.7727272727272725,
+            "anger_calm": -0.04545454545454544,
+            "excitement_calm": 3.0454545454545454
+          },
+          "locked_words": [],
+          "changed_word": null
+        },
+        {
+          "step": 8,
+          "original_sentence": "速度很快",
+          "modified_sentence": "速度飞快",
+          "emotion_scores": {
+            "positive_negative": 2.0833333333333335,
+            "anger_calm": -0.6666666666666665,
+            "excitement_calm": 3.666666666666667
+          },
+          "locked_words": [],
+          "changed_word": {
+            "original": "很快",
+            "new": "飞快"
+          }
+        }
+      ],
+      "emotion_series": {
+        "positive_negative": [
+          2.0833333333333335,
+          2.0833333333333335,
+          2.0833333333333335,
+          1.7727272727272725,
+          1.7727272727272725,
+          1.7727272727272725,
+          1.7727272727272725,
+          2.0833333333333335
+        ],
+        "anger_calm": [
+          -0.6666666666666665,
+          -0.6666666666666665,
+          -0.6666666666666665,
+          -0.04545454545454544,
+          -0.04545454545454544,
+          -0.04545454545454544,
+          -0.04545454545454544,
+          -0.6666666666666665
+        ],
+        "excitement_calm": [
+          3.666666666666667,
+          3.666666666666667,
+          3.666666666666667,
+          3.0454545454545454,
+          3.0454545454545454,
+          3.0454545454545454,
+          3.0454545454545454,
+          3.666666666666667
+        ]
+      },
+      "summary": {
+        "total_steps": 8,
+        "changes_count": 3,
+        "initial_scores": {
+          "positive_negative": 2.0833333333333335,
+          "anger_calm": -0.6666666666666665,
+          "excitement_calm": 3.666666666666667
+        },
+        "final_scores": {
+          "positive_negative": 2.0833333333333335,
+          "anger_calm": -0.6666666666666665,
+          "excitement_calm": 3.666666666666667
+        },
+        "all_changes": [
+          {
+            "step": 1,
+            "original": "很快",
+            "new": "飞快"
+          },
+          {
+            "step": 4,
+            "original": "飞快",
+            "new": "很快"
+          },
+          {
+            "step": 8,
+            "original": "很快",
+            "new": "飞快"
+          }
+        ],
+        "score_differences": {
+          "positive_negative": {
+            "start": 2.0833333333333335,
+            "end": 2.0833333333333335,
+            "change": 0.0,
+            "min": 1.7727272727272725,
+            "max": 2.0833333333333335,
+            "mean": 1.928030303030303
+          },
+          "anger_calm": {
+            "start": -0.6666666666666665,
+            "end": -0.6666666666666665,
+            "change": 0.0,
+            "min": -0.6666666666666665,
+            "max": -0.04545454545454544,
+            "mean": -0.35606060606060597
+          },
+          "excitement_calm": {
+            "start": 3.666666666666667,
+            "end": 3.666666666666667,
+            "change": 0.0,
+            "min": 3.0454545454545454,
+            "max": 3.666666666666667,
+            "mean": 3.3560606060606064
+          }
+        }
+      }
+    },
+    {
+      "initial_sentence": "外面很热",
+      "final_sentence": "外面很严寒",
+      "locked_words": [],
+      "dimensions": [
+        {
+          "name": "positive_negative",
+          "low_label": "消极",
+          "high_label": "积极",
+          "min_val": -5.0,
+          "max_val": 5.0
+        },
+        {
+          "name": "anger_calm",
+          "low_label": "愤怒",
+          "high_label": "平静",
+          "min_val": -5.0,
+          "max_val": 5.0
+        },
+        {
+          "name": "excitement_calm",
+          "low_label": "平静",
+          "high_label": "激动",
+          "min_val": -5.0,
+          "max_val": 5.0
+        }
+      ],
+      "steps": [
+        {
+          "step": 1,
+          "original_sentence": "外面很热",
+          "modified_sentence": "外面很热",
+          "emotion_scores": {
+            "positive_negative": 0.5,
+            "anger_calm": -0.5,
+            "excitement_calm": 1.0
+          },
+          "locked_words": [],
+          "changed_word": null
+        },
+        {
+          "step": 2,
+          "original_sentence": "外面很热",
+          "modified_sentence": "外面很热",
+          "emotion_scores": {
+            "positive_negative": 0.5,
+            "anger_calm": -0.5,
+            "excitement_calm": 1.0
+          },
+          "locked_words": [],
+          "changed_word": null
+        },
+        {
+          "step": 3,
+          "original_sentence": "外面很热",
+          "modified_sentence": "外面很热",
+          "emotion_scores": {
+            "positive_negative": 0.5,
+            "anger_calm": -0.5,
+            "excitement_calm": 1.0
+          },
+          "locked_words": [],
+          "changed_word": null
+        },
+        {
+          "step": 4,
+          "original_sentence": "外面很热",
+          "modified_sentence": "外面很温暖",
+          "emotion_scores": {
+            "positive_negative": 2.0,
+            "anger_calm": 2.0,
+            "excitement_calm": 0.0
+          },
+          "locked_words": [],
+          "changed_word": {
+            "original": "热",
+            "new": "温暖"
+          }
+        },
+        {
+          "step": 5,
+          "original_sentence": "外面很温暖",
+          "modified_sentence": "外面很寒冷",
+          "emotion_scores": {
+            "positive_negative": -2.0,
+            "anger_calm": 0.5,
+            "excitement_calm": -2.0
+          },
+          "locked_words": [],
+          "changed_word": {
+            "original": "温暖",
+            "new": "寒冷"
+          }
+        },
+        {
+          "step": 6,
+          "original_sentence": "外面很寒冷",
+          "modified_sentence": "外面很寒冷",
+          "emotion_scores": {
+            "positive_negative": -2.0,
+            "anger_calm": 0.5,
+            "excitement_calm": -2.0
+          },
+          "locked_words": [],
+          "changed_word": null
+        },
+        {
+          "step": 7,
+          "original_sentence": "外面很寒冷",
+          "modified_sentence": "外面很严寒",
+          "emotion_scores": {
+            "positive_negative": -3.0,
+            "anger_calm": 0.0,
+            "excitement_calm": -3.0
+          },
+          "locked_words": [],
+          "changed_word": {
+            "original": "寒冷",
+            "new": "严寒"
+          }
+        },
+        {
+          "step": 8,
+          "original_sentence": "外面很严寒",
+          "modified_sentence": "外面很严寒",
+          "emotion_scores": {
+            "positive_negative": -3.0,
+            "anger_calm": 0.0,
+            "excitement_calm": -3.0
+          },
+          "locked_words": [],
+          "changed_word": null
+        }
+      ],
+      "emotion_series": {
+        "positive_negative": [
+          0.5,
+          0.5,
+          0.5,
+          2.0,
+          -2.0,
+          -2.0,
+          -3.0,
+          -3.0
+        ],
+        "anger_calm": [
+          -0.5,
+          -0.5,
+          -0.5,
+          2.0,
+          0.5,
+          0.5,
+          0.0,
+          0.0
+        ],
+        "excitement_calm": [
+          1.0,
+          1.0,
+          1.0,
+          0.0,
+          -2.0,
+          -2.0,
+          -3.0,
+          -3.0
+        ]
+      },
+      "summary": {
+        "total_steps": 8,
+        "changes_count": 3,
+        "initial_scores": {
+          "positive_negative": 0.5,
+          "anger_calm": -0.5,
+          "excitement_calm": 1.0
+        },
+        "final_scores": {
+          "positive_negative": -3.0,
+          "anger_calm": 0.0,
+          "excitement_calm": -3.0
+        },
+        "all_changes": [
+          {
+            "step": 4,
+            "original": "热",
+            "new": "温暖"
+          },
+          {
+            "step": 5,
+            "original": "温暖",
+            "new": "寒冷"
+          },
+          {
+            "step": 7,
+            "original": "寒冷",
+            "new": "严寒"
+          }
+        ],
+        "score_differences": {
+          "positive_negative": {
+            "start": 0.5,
+            "end": -3.0,
+            "change": -3.5,
+            "min": -3.0,
+            "max": 2.0,
+            "mean": -0.8125
+          },
+          "anger_calm": {
+            "start": -0.5,
+            "end": 0.0,
+            "change": 0.5,
+            "min": -0.5,
+            "max": 2.0,
+            "mean": 0.1875
+          },
+          "excitement_calm": {
+            "start": 1.0,
+            "end": -3.0,
+            "change": -4.0,
+            "min": -3.0,
+            "max": 1.0,
+            "mean": -0.875
+          }
+        }
+      }
+    },
+    {
+      "initial_sentence": "房间很大",
+      "final_sentence": "房间很大",
+      "locked_words": [],
+      "dimensions": [
+        {
+          "name": "positive_negative",
+          "low_label": "消极",
+          "high_label": "积极",
+          "min_val": -5.0,
+          "max_val": 5.0
+        },
+        {
+          "name": "anger_calm",
+          "low_label": "愤怒",
+          "high_label": "平静",
+          "min_val": -5.0,
+          "max_val": 5.0
+        },
+        {
+          "name": "excitement_calm",
+          "low_label": "平静",
+          "high_label": "激动",
+          "min_val": -5.0,
+          "max_val": 5.0
+        }
+      ],
+      "steps": [
+        {
+          "step": 1,
+          "original_sentence": "房间很大",
+          "modified_sentence": "房间大",
+          "emotion_scores": {
+            "positive_negative": 1.5,
+            "anger_calm": 0.5,
+            "excitement_calm": 2.0
+          },
+          "locked_words": [],
+          "changed_word": {
+            "original": "很大",
+            "new": "大"
+          }
+        },
+        {
+          "step": 2,
+          "original_sentence": "房间大",
+          "modified_sentence": "房间较小",
+          "emotion_scores": {
+            "positive_negative": 0.0,
+            "anger_calm": 2.0,
+            "excitement_calm": -1.0
+          },
+          "locked_words": [],
+          "changed_word": {
+            "original": "大",
+            "new": "较小"
+          }
+        },
+        {
+          "step": 3,
+          "original_sentence": "房间较小",
+          "modified_sentence": "房间适中",
+          "emotion_scores": {
+            "positive_negative": 0.5,
+            "anger_calm": 2.5,
+            "excitement_calm": 0.0
+          },
+          "locked_words": [],
+          "changed_word": {
+            "original": "较小",
+            "new": "适中"
+          }
+        },
+        {
+          "step": 4,
+          "original_sentence": "房间适中",
+          "modified_sentence": "房间很大",
+          "emotion_scores": {
+            "positive_negative": 2.0454545454545454,
+            "anger_calm": -0.04545454545454544,
+            "excitement_calm": 2.545454545454545
+          },
+          "locked_words": [],
+          "changed_word": {
+            "original": "适中",
+            "new": "很大"
+          }
+        },
+        {
+          "step": 5,
+          "original_sentence": "房间很大",
+          "modified_sentence": "房间大",
+          "emotion_scores": {
+            "positive_negative": 1.5,
+            "anger_calm": 0.5,
+            "excitement_calm": 2.0
+          },
+          "locked_words": [],
+          "changed_word": {
+            "original": "很大",
+            "new": "大"
+          }
+        },
+        {
+          "step": 6,
+          "original_sentence": "房间大",
+          "modified_sentence": "房间很大",
+          "emotion_scores": {
+            "positive_negative": 2.0454545454545454,
+            "anger_calm": -0.04545454545454544,
+            "excitement_calm": 2.545454545454545
+          },
+          "locked_words": [],
+          "changed_word": {
+            "original": "大",
+            "new": "很大"
+          }
+        },
+        {
+          "step": 7,
+          "original_sentence": "房间很大",
+          "modified_sentence": "房间较小",
+          "emotion_scores": {
+            "positive_negative": 0.0,
+            "anger_calm": 2.0,
+            "excitement_calm": -1.0
+          },
+          "locked_words": [],
+          "changed_word": {
+            "original": "很大",
+            "new": "较小"
+          }
+        },
+        {
+          "step": 8,
+          "original_sentence": "房间较小",
+          "modified_sentence": "房间很大",
+          "emotion_scores": {
+            "positive_negative": 2.0454545454545454,
+            "anger_calm": -0.04545454545454544,
+            "excitement_calm": 2.545454545454545
+          },
+          "locked_words": [],
+          "changed_word": {
+            "original": "较小",
+            "new": "很大"
+          }
+        }
+      ],
+      "emotion_series": {
+        "positive_negative": [
+          1.5,
+          0.0,
+          0.5,
+          2.0454545454545454,
+          1.5,
+          2.0454545454545454,
+          0.0,
+          2.0454545454545454
+        ],
+        "anger_calm": [
+          0.5,
+          2.0,
+          2.5,
+          -0.04545454545454544,
+          0.5,
+          -0.04545454545454544,
+          2.0,
+          -0.04545454545454544
+        ],
+        "excitement_calm": [
+          2.0,
+          -1.0,
+          0.0,
+          2.545454545454545,
+          2.0,
+          2.545454545454545,
+          -1.0,
+          2.545454545454545
+        ]
+      },
+      "summary": {
+        "total_steps": 8,
+        "changes_count": 8,
+        "initial_scores": {
+          "positive_negative": 1.5,
+          "anger_calm": 0.5,
+          "excitement_calm": 2.0
+        },
+        "final_scores": {
+          "positive_negative": 2.0454545454545454,
+          "anger_calm": -0.04545454545454544,
+          "excitement_calm": 2.545454545454545
+        },
+        "all_changes": [
+          {
+            "step": 1,
+            "original": "很大",
+            "new": "大"
+          },
+          {
+            "step": 2,
+            "original": "大",
+            "new": "较小"
+          },
+          {
+            "step": 3,
+            "original": "较小",
+            "new": "适中"
+          },
+          {
+            "step": 4,
+            "original": "适中",
+            "new": "很大"
+          },
+          {
+            "step": 5,
+            "original": "很大",
+            "new": "大"
+          },
+          {
+            "step": 6,
+            "original": "大",
+            "new": "很大"
+          },
+          {
+            "step": 7,
+            "original": "很大",
+            "new": "较小"
+          },
+          {
+            "step": 8,
+            "original": "较小",
+            "new": "很大"
+          }
+        ],
+        "score_differences": {
+          "positive_negative": {
+            "start": 1.5,
+            "end": 2.0454545454545454,
+            "change": 0.5454545454545454,
+            "min": 0.0,
+            "max": 2.0454545454545454,
+            "mean": 1.2045454545454546
+          },
+          "anger_calm": {
+            "start": 0.5,
+            "end": -0.04545454545454544,
+            "change": -0.5454545454545454,
+            "min": -0.04545454545454544,
+            "max": 2.5,
+            "mean": 0.9204545454545454
+          },
+          "excitement_calm": {
+            "start": 2.0,
+            "end": 2.545454545454545,
+            "change": 0.545454545454545,
+            "min": -1.0,
+            "max": 2.545454545454545,
+            "mean": 1.2045454545454544
+          }
+        }
+      }
+    },
+    {
+      "initial_sentence": "今天的饭很好吃",
+      "final_sentence": "今天的饭很好吃",
+      "locked_words": [],
+      "dimensions": [
+        {
+          "name": "positive_negative",
+          "low_label": "消极",
+          "high_label": "积极",
+          "min_val": -5.0,
+          "max_val": 5.0
+        },
+        {
+          "name": "anger_calm",
+          "low_label": "愤怒",
+          "high_label": "平静",
+          "min_val": -5.0,
+          "max_val": 5.0
+        },
+        {
+          "name": "excitement_calm",
+          "low_label": "平静",
+          "high_label": "激动",
+          "min_val": -5.0,
+          "max_val": 5.0
+        }
+      ],
+      "steps": [
+        {
+          "step": 1,
+          "original_sentence": "今天的饭很好吃",
+          "modified_sentence": "今天的饭好吃",
+          "emotion_scores": {
+            "positive_negative": 2.5,
+            "anger_calm": 1.0,
+            "excitement_calm": 1.0
+          },
+          "locked_words": [],
+          "changed_word": {
+            "original": "很好",
+            "new": "好"
+          }
+        },
+        {
+          "step": 2,
+          "original_sentence": "今天的饭好吃",
+          "modified_sentence": "今天的饭好吃",
+          "emotion_scores": {
+            "positive_negative": 2.5,
+            "anger_calm": 1.0,
+            "excitement_calm": 1.0
+          },
+          "locked_words": [],
+          "changed_word": null
+        },
+        {
+          "step": 3,
+          "original_sentence": "今天的饭好吃",
+          "modified_sentence": "今天的饭好吃",
+          "emotion_scores": {
+            "positive_negative": 2.5,
+            "anger_calm": 1.0,
+            "excitement_calm": 1.0
+          },
+          "locked_words": [],
+          "changed_word": null
+        },
+        {
+          "step": 4,
+          "original_sentence": "今天的饭好吃",
+          "modified_sentence": "今天的饭好吃",
+          "emotion_scores": {
+            "positive_negative": 2.5,
+            "anger_calm": 1.0,
+            "excitement_calm": 1.0
+          },
+          "locked_words": [],
+          "changed_word": null
+        },
+        {
+          "step": 5,
+          "original_sentence": "今天的饭好吃",
+          "modified_sentence": "今天的饭较差吃",
+          "emotion_scores": {
+            "positive_negative": -1.5,
+            "anger_calm": 0.0,
+            "excitement_calm": -0.5
+          },
+          "locked_words": [],
+          "changed_word": {
+            "original": "好",
+            "new": "较差"
+          }
+        },
+        {
+          "step": 6,
+          "original_sentence": "今天的饭较差吃",
+          "modified_sentence": "今天的饭较差吃",
+          "emotion_scores": {
+            "positive_negative": -1.5,
+            "anger_calm": 0.0,
+            "excitement_calm": -0.5
+          },
+          "locked_words": [],
+          "changed_word": null
+        },
+        {
+          "step": 7,
+          "original_sentence": "今天的饭较差吃",
+          "modified_sentence": "今天的饭很好吃",
+          "emotion_scores": {
+            "positive_negative": 3.378787878787879,
+            "anger_calm": 1.1515151515151516,
+            "excitement_calm": 1.696969696969697
+          },
+          "locked_words": [],
+          "changed_word": {
+            "original": "较差",
+            "new": "很好"
+          }
+        },
+        {
+          "step": 8,
+          "original_sentence": "今天的饭很好吃",
+          "modified_sentence": "今天的饭很好吃",
+          "emotion_scores": {
+            "positive_negative": 3.378787878787879,
+            "anger_calm": 1.1515151515151516,
+            "excitement_calm": 1.696969696969697
+          },
+          "locked_words": [],
+          "changed_word": null
+        }
+      ],
+      "emotion_series": {
+        "positive_negative": [
+          2.5,
+          2.5,
+          2.5,
+          2.5,
+          -1.5,
+          -1.5,
+          3.378787878787879,
+          3.378787878787879
+        ],
+        "anger_calm": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          0.0,
+          0.0,
+          1.1515151515151516,
+          1.1515151515151516
+        ],
+        "excitement_calm": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          -0.5,
+          -0.5,
+          1.696969696969697,
+          1.696969696969697
+        ]
+      },
+      "summary": {
+        "total_steps": 8,
+        "changes_count": 3,
+        "initial_scores": {
+          "positive_negative": 2.5,
+          "anger_calm": 1.0,
+          "excitement_calm": 1.0
+        },
+        "final_scores": {
+          "positive_negative": 3.378787878787879,
+          "anger_calm": 1.1515151515151516,
+          "excitement_calm": 1.696969696969697
+        },
+        "all_changes": [
+          {
+            "step": 1,
+            "original": "很好",
+            "new": "好"
+          },
+          {
+            "step": 5,
+            "original": "好",
+            "new": "较差"
+          },
+          {
+            "step": 7,
+            "original": "较差",
+            "new": "很好"
+          }
+        ],
+        "score_differences": {
+          "positive_negative": {
+            "start": 2.5,
+            "end": 3.378787878787879,
+            "change": 0.8787878787878789,
+            "min": -1.5,
+            "max": 3.378787878787879,
+            "mean": 1.7196969696969697
+          },
+          "anger_calm": {
+            "start": 1.0,
+            "end": 1.1515151515151516,
+            "change": 0.1515151515151516,
+            "min": 0.0,
+            "max": 1.1515151515151516,
+            "mean": 0.7878787878787878
+          },
+          "excitement_calm": {
+            "start": 1.0,
+            "end": 1.696969696969697,
+            "change": 0.696969696969697,
+            "min": -0.5,
+            "max": 1.696969696969697,
+            "mean": 0.7992424242424243
+          }
+        }
+      }
+    },
+    {
+      "initial_sentence": "我想出去玩",
+      "final_sentence": "我非常想出去玩",
+      "locked_words": [],
+      "dimensions": [
+        {
+          "name": "positive_negative",
+          "low_label": "消极",
+          "high_label": "积极",
+          "min_val": -5.0,
+          "max_val": 5.0
+        },
+        {
+          "name": "anger_calm",
+          "low_label": "愤怒",
+          "high_label": "平静",
+          "min_val": -5.0,
+          "max_val": 5.0
+        },
+        {
+          "name": "excitement_calm",
+          "low_label": "平静",
+          "high_label": "激动",
+          "min_val": -5.0,
+          "max_val": 5.0
+        }
+      ],
+      "steps": [
+        {
+          "step": 1,
+          "original_sentence": "我想出去玩",
+          "modified_sentence": "我很想出去玩",
+          "emotion_scores": {
+            "positive_negative": 2.545454545454545,
+            "anger_calm": 0.45454545454545453,
+            "excitement_calm": 2.0454545454545454
+          },
+          "locked_words": [],
+          "changed_word": {
+            "original": "想",
+            "new": "很想"
+          }
+        },
+        {
+          "step": 2,
+          "original_sentence": "我很想出去玩",
+          "modified_sentence": "我很想出去玩",
+          "emotion_scores": {
+            "positive_negative": 2.545454545454545,
+            "anger_calm": 0.45454545454545453,
+            "excitement_calm": 2.0454545454545454
+          },
+          "locked_words": [],
+          "changed_word": null
+        },
+        {
+          "step": 3,
+          "original_sentence": "我很想出去玩",
+          "modified_sentence": "我非常想出去玩",
+          "emotion_scores": {
+            "positive_negative": 3.1666666666666665,
+            "anger_calm": -0.16666666666666663,
+            "excitement_calm": 2.6666666666666665
+          },
+          "locked_words": [],
+          "changed_word": {
+            "original": "很想",
+            "new": "非常想"
+          }
+        },
+        {
+          "step": 4,
+          "original_sentence": "我非常想出去玩",
+          "modified_sentence": "我非常想出去玩",
+          "emotion_scores": {
+            "positive_negative": 3.1666666666666665,
+            "anger_calm": -0.16666666666666663,
+            "excitement_calm": 2.6666666666666665
+          },
+          "locked_words": [],
+          "changed_word": null
+        },
+        {
+          "step": 5,
+          "original_sentence": "我非常想出去玩",
+          "modified_sentence": "我非常想出去玩",
+          "emotion_scores": {
+            "positive_negative": 3.1666666666666665,
+            "anger_calm": -0.16666666666666663,
+            "excitement_calm": 2.6666666666666665
+          },
+          "locked_words": [],
+          "changed_word": null
+        },
+        {
+          "step": 6,
+          "original_sentence": "我非常想出去玩",
+          "modified_sentence": "我非常想出去玩",
+          "emotion_scores": {
+            "positive_negative": 3.1666666666666665,
+            "anger_calm": -0.16666666666666663,
+            "excitement_calm": 2.6666666666666665
+          },
+          "locked_words": [],
+          "changed_word": null
+        },
+        {
+          "step": 7,
+          "original_sentence": "我非常想出去玩",
+          "modified_sentence": "我非常想出去玩",
+          "emotion_scores": {
+            "positive_negative": 3.1666666666666665,
+            "anger_calm": -0.16666666666666663,
+            "excitement_calm": 2.6666666666666665
+          },
+          "locked_words": [],
+          "changed_word": null
+        },
+        {
+          "step": 8,
+          "original_sentence": "我非常想出去玩",
+          "modified_sentence": "我非常想出去玩",
+          "emotion_scores": {
+            "positive_negative": 3.1666666666666665,
+            "anger_calm": -0.16666666666666663,
+            "excitement_calm": 2.6666666666666665
+          },
+          "locked_words": [],
+          "changed_word": null
+        }
+      ],
+      "emotion_series": {
+        "positive_negative": [
+          2.545454545454545,
+          2.545454545454545,
+          3.1666666666666665,
+          3.1666666666666665,
+          3.1666666666666665,
+          3.1666666666666665,
+          3.1666666666666665,
+          3.1666666666666665
+        ],
+        "anger_calm": [
+          0.45454545454545453,
+          0.45454545454545453,
+          -0.16666666666666663,
+          -0.16666666666666663,
+          -0.16666666666666663,
+          -0.16666666666666663,
+          -0.16666666666666663,
+          -0.16666666666666663
+        ],
+        "excitement_calm": [
+          2.0454545454545454,
+          2.0454545454545454,
+          2.6666666666666665,
+          2.6666666666666665,
+          2.6666666666666665,
+          2.6666666666666665,
+          2.6666666666666665,
+          2.6666666666666665
+        ]
+      },
+      "summary": {
+        "total_steps": 8,
+        "changes_count": 2,
+        "initial_scores": {
+          "positive_negative": 2.545454545454545,
+          "anger_calm": 0.45454545454545453,
+          "excitement_calm": 2.0454545454545454
+        },
+        "final_scores": {
+          "positive_negative": 3.1666666666666665,
+          "anger_calm": -0.16666666666666663,
+          "excitement_calm": 2.6666666666666665
+        },
+        "all_changes": [
+          {
+            "step": 1,
+            "original": "想",
+            "new": "很想"
+          },
+          {
+            "step": 3,
+            "original": "很想",
+            "new": "非常想"
+          }
+        ],
+        "score_differences": {
+          "positive_negative": {
+            "start": 2.545454545454545,
+            "end": 3.1666666666666665,
+            "change": 0.6212121212121215,
+            "min": 2.545454545454545,
+            "max": 3.1666666666666665,
+            "mean": 3.0113636363636362
+          },
+          "anger_calm": {
+            "start": 0.45454545454545453,
+            "end": -0.16666666666666663,
+            "change": -0.6212121212121211,
+            "min": -0.16666666666666663,
+            "max": 0.45454545454545453,
+            "mean": -0.01136363636363634
+          },
+          "excitement_calm": {
+            "start": 2.0454545454545454,
+            "end": 2.6666666666666665,
+            "change": 0.6212121212121211,
+            "min": 2.0454545454545454,
+            "max": 2.6666666666666665,
+            "mean": 2.5113636363636362
+          }
+        }
+      }
+    },
+    {
+      "initial_sentence": "他今天很高兴",
+      "final_sentence": "他今天很生气",
+      "locked_words": [],
+      "dimensions": [
+        {
+          "name": "positive_negative",
+          "low_label": "消极",
+          "high_label": "积极",
+          "min_val": -5.0,
+          "max_val": 5.0
+        },
+        {
+          "name": "anger_calm",
+          "low_label": "愤怒",
+          "high_label": "平静",
+          "min_val": -5.0,
+          "max_val": 5.0
+        },
+        {
+          "name": "excitement_calm",
+          "low_label": "平静",
+          "high_label": "激动",
+          "min_val": -5.0,
+          "max_val": 5.0
+        }
+      ],
+      "steps": [
+        {
+          "step": 1,
+          "original_sentence": "他今天很高兴",
+          "modified_sentence": "他今天很开心",
+          "emotion_scores": {
+            "positive_negative": 2.0,
+            "anger_calm": 1.0,
+            "excitement_calm": 1.5
+          },
+          "locked_words": [],
+          "changed_word": {
+            "original": "高兴",
+            "new": "开心"
+          }
+        },
+        {
+          "step": 2,
+          "original_sentence": "他今天很开心",
+          "modified_sentence": "他今天很平静",
+          "emotion_scores": {
+            "positive_negative": 0.0,
+            "anger_calm": 3.0,
+            "excitement_calm": -2.0
+          },
+          "locked_words": [],
+          "changed_word": {
+            "original": "开心",
+            "new": "平静"
+          }
+        },
+        {
+          "step": 3,
+          "original_sentence": "他今天很平静",
+          "modified_sentence": "他今天很平静",
+          "emotion_scores": {
+            "positive_negative": 0.0,
+            "anger_calm": 3.0,
+            "excitement_calm": -2.0
+          },
+          "locked_words": [],
+          "changed_word": null
+        },
+        {
+          "step": 4,
+          "original_sentence": "他今天很平静",
+          "modified_sentence": "他今天很平静",
+          "emotion_scores": {
+            "positive_negative": 0.0,
+            "anger_calm": 3.0,
+            "excitement_calm": -2.0
+          },
+          "locked_words": [],
+          "changed_word": null
+        },
+        {
+          "step": 5,
+          "original_sentence": "他今天很平静",
+          "modified_sentence": "他今天很平静",
+          "emotion_scores": {
+            "positive_negative": 0.0,
+            "anger_calm": 3.0,
+            "excitement_calm": -2.0
+          },
+          "locked_words": [],
+          "changed_word": null
+        },
+        {
+          "step": 6,
+          "original_sentence": "他今天很平静",
+          "modified_sentence": "他今天很平静",
+          "emotion_scores": {
+            "positive_negative": 0.0,
+            "anger_calm": 3.0,
+            "excitement_calm": -2.0
+          },
+          "locked_words": [],
+          "changed_word": null
+        },
+        {
+          "step": 7,
+          "original_sentence": "他今天很平静",
+          "modified_sentence": "他今天很愤怒",
+          "emotion_scores": {
+            "positive_negative": -3.4999999999999996,
+            "anger_calm": -4.5,
+            "excitement_calm": 2.5
+          },
+          "locked_words": [],
+          "changed_word": {
+            "original": "平静",
+            "new": "愤怒"
+          }
+        },
+        {
+          "step": 8,
+          "original_sentence": "他今天很愤怒",
+          "modified_sentence": "他今天很生气",
+          "emotion_scores": {
+            "positive_negative": -2.0,
+            "anger_calm": -3.0,
+            "excitement_calm": 1.0
+          },
+          "locked_words": [],
+          "changed_word": {
+            "original": "愤怒",
+            "new": "生气"
+          }
+        }
+      ],
+      "emotion_series": {
+        "positive_negative": [
+          2.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          -3.4999999999999996,
+          -2.0
+        ],
+        "anger_calm": [
+          1.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          -4.5,
+          -3.0
+        ],
+        "excitement_calm": [
+          1.5,
+          -2.0,
+          -2.0,
+          -2.0,
+          -2.0,
+          -2.0,
+          2.5,
+          1.0
+        ]
+      },
+      "summary": {
+        "total_steps": 8,
+        "changes_count": 4,
+        "initial_scores": {
+          "positive_negative": 2.0,
+          "anger_calm": 1.0,
+          "excitement_calm": 1.5
+        },
+        "final_scores": {
+          "positive_negative": -2.0,
+          "anger_calm": -3.0,
+          "excitement_calm": 1.0
+        },
+        "all_changes": [
+          {
+            "step": 1,
+            "original": "高兴",
+            "new": "开心"
+          },
+          {
+            "step": 2,
+            "original": "开心",
+            "new": "平静"
+          },
+          {
+            "step": 7,
+            "original": "平静",
+            "new": "愤怒"
+          },
+          {
+            "step": 8,
+            "original": "愤怒",
+            "new": "生气"
+          }
+        ],
+        "score_differences": {
+          "positive_negative": {
+            "start": 2.0,
+            "end": -2.0,
+            "change": -4.0,
+            "min": -3.4999999999999996,
+            "max": 2.0,
+            "mean": -0.43749999999999994
+          },
+          "anger_calm": {
+            "start": 1.0,
+            "end": -3.0,
+            "change": -4.0,
+            "min": -4.5,
+            "max": 3.0,
+            "mean": 1.0625
+          },
+          "excitement_calm": {
+            "start": 1.5,
+            "end": 1.0,
+            "change": -0.5,
+            "min": -2.0,
+            "max": 2.5,
+            "mean": -0.625
+          }
+        }
+      }
+    }
+  ],
+  "common_dimensions": [
+    {
+      "name": "positive_negative",
+      "low_label": "消极",
+      "high_label": "积极",
+      "min_val": -5.0,
+      "max_val": 5.0
+    },
+    {
+      "name": "anger_calm",
+      "low_label": "愤怒",
+      "high_label": "平静",
+      "min_val": -5.0,
+      "max_val": 5.0
+    },
+    {
+      "name": "excitement_calm",
+      "low_label": "平静",
+      "high_label": "激动",
+      "min_val": -5.0,
+      "max_val": 5.0
+    }
+  ]
+}

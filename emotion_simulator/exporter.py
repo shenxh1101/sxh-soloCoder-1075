@@ -35,8 +35,48 @@ class JSONExporter:
         }
 
     @staticmethod
+    def _matched_word_to_dict(mw) -> Dict[str, Any]:
+        """将MatchedWordDetail转换为字典"""
+        return {
+            "word": mw.word,
+            "position": mw.position,
+            "group_keyword": mw.group_keyword,
+            "emotion_scores": mw.emotion_scores,
+            "intensity": mw.intensity,
+            "contribution": mw.contribution,
+        }
+
+    @staticmethod
+    def _score_contribution_to_dict(sc) -> Dict[str, Any]:
+        """将ScoreContribution转换为字典"""
+        data = {
+            "matched_words": [JSONExporter._matched_word_to_dict(mw) for mw in sc.matched_words],
+            "main_contributor": JSONExporter._matched_word_to_dict(sc.main_contributor) if sc.main_contributor else None,
+            "top_dimension": sc.top_dimension,
+        }
+        return data
+
+    @staticmethod
+    def _replacement_detail_to_dict(rd) -> Dict[str, Any]:
+        """将ReplacementDetail转换为字典"""
+        if rd is None:
+            return None
+        data = {
+            "original_word": rd.original_word,
+            "new_word": rd.new_word,
+            "group_keyword": rd.group_keyword,
+            "position": rd.position,
+            "target_dimension": rd.target_dimension,
+            "before_scores": rd.before_scores,
+            "after_scores": rd.after_scores,
+            "before_contribution": JSONExporter._score_contribution_to_dict(rd.before_contribution) if rd.before_contribution else None,
+            "after_contribution": JSONExporter._score_contribution_to_dict(rd.after_contribution) if rd.after_contribution else None,
+        }
+        return data
+
+    @staticmethod
     def _step_to_dict(step: TransmissionStep) -> Dict[str, Any]:
-        """将传递步骤转换为字典"""
+        """将传递步骤转换为字典（包含完整可追溯信息）"""
         data = {
             "step": step.step,
             "original_sentence": step.original_sentence,
@@ -51,6 +91,13 @@ class JSONExporter:
             }
         else:
             data["changed_word"] = None
+        
+        if step.score_contribution:
+            data["score_contribution"] = JSONExporter._score_contribution_to_dict(step.score_contribution)
+        
+        if step.replacement_detail:
+            data["replacement_detail"] = JSONExporter._replacement_detail_to_dict(step.replacement_detail)
+        
         return data
 
     @staticmethod
@@ -359,12 +406,21 @@ class CSVExporter:
         filepath: str,
     ) -> None:
         """
-        导出单个结果的时间序列数据为CSV
+        导出单个结果的时间序列数据为CSV（包含完整可追溯信息）
         
-        列: step, sentence, changed_word, [各维度分数...]
+        列: step, sentence, changed_word, target_dimension, main_contributor, top_dimension, top_dimension_score, [各维度分数...]
         """
         with open(filepath, "w", encoding="utf-8-sig", newline="") as f:
-            fieldnames = ["step", "sentence", "changed_word"]
+            fieldnames = [
+                "step", 
+                "sentence", 
+                "changed_word", 
+                "target_dimension", 
+                "main_contributor", 
+                "main_contributor_contribution",
+                "top_dimension", 
+                "top_dimension_score"
+            ]
             for dim in result.dimensions:
                 fieldnames.append(dim.name)
 
@@ -376,7 +432,22 @@ class CSVExporter:
                     "step": step.step,
                     "sentence": step.modified_sentence,
                     "changed_word": f"{step.changed_word[0]}→{step.changed_word[1]}" if step.changed_word else "",
+                    "target_dimension": step.replacement_detail.target_dimension if step.replacement_detail else "",
+                    "main_contributor": "",
+                    "main_contributor_contribution": "",
+                    "top_dimension": "",
+                    "top_dimension_score": "",
                 }
+                
+                if step.score_contribution:
+                    sc = step.score_contribution
+                    if sc.main_contributor:
+                        row["main_contributor"] = sc.main_contributor.word
+                        row["main_contributor_contribution"] = sum(abs(v) for v in sc.main_contributor.contribution.values())
+                    if sc.top_dimension:
+                        row["top_dimension"] = sc.top_dimension.get("dimension", "")
+                        row["top_dimension_score"] = sc.top_dimension.get("score", "")
+                
                 for dim in result.dimensions:
                     row[dim.name] = step.emotion_scores.get(dim.name, 0.0)
                 writer.writerow(row)

@@ -88,6 +88,45 @@ class SynonymGroup:
 
 
 @dataclass
+class MatchedWordDetail:
+    """
+    命中词的详细信息（用于可追溯分析）
+    """
+    word: str
+    position: int
+    group_keyword: str
+    emotion_scores: Dict[str, float]
+    intensity: float
+    contribution: Dict[str, float] = field(default_factory=dict)
+
+
+@dataclass
+class ScoreContribution:
+    """
+    分数贡献信息
+    """
+    main_contributor: Optional[MatchedWordDetail] = None
+    top_dimension: Optional[Dict] = None
+    matched_words: List[MatchedWordDetail] = field(default_factory=list)
+
+
+@dataclass
+class ReplacementDetail:
+    """
+    替换的详细信息（用于可追溯分析）
+    """
+    original_word: str
+    new_word: str
+    group_keyword: str
+    position: int
+    target_dimension: str
+    before_scores: Dict[str, float]
+    after_scores: Dict[str, float]
+    before_contribution: Optional[ScoreContribution] = None
+    after_contribution: Optional[ScoreContribution] = None
+
+
+@dataclass
 class TransmissionStep:
     """
     单次传递记录
@@ -98,6 +137,28 @@ class TransmissionStep:
     emotion_scores: Dict[str, float]
     changed_word: Optional[Tuple[str, str]] = None
     locked_words: List[str] = field(default_factory=list)
+    score_contribution: Optional[ScoreContribution] = None
+    replacement_detail: Optional[ReplacementDetail] = None
+
+
+@dataclass
+class SimulationProfile:
+    """
+    场景配置Profile
+    保存完整的模拟配置，方便复用
+    """
+    name: str
+    dimensions: List[Dict] = field(default_factory=list)
+    lexicon_path: Optional[str] = None
+    no_merge_default: bool = False
+    word_score_overrides: Dict[str, Dict[str, float]] = field(default_factory=dict)
+    conflict_strategy: str = "keep_first"
+    change_probability: float = 0.6
+    magnitude: float = 0.5
+    drift: Dict[str, float] = field(default_factory=dict)
+    description: str = ""
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
 
 
 @dataclass
@@ -783,3 +844,159 @@ def export_lexicon_to_file(
             yaml.dump(config, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
         else:
             json.dump(config, f, ensure_ascii=False, indent=2)
+
+
+def get_profiles_dir() -> str:
+    """
+    获取Profile存储目录
+    默认在用户主目录下创建 .emotion_simulator/profiles 目录
+    """
+    home_dir = os.path.expanduser("~")
+    profiles_dir = os.path.join(home_dir, ".emotion_simulator", "profiles")
+    os.makedirs(profiles_dir, exist_ok=True)
+    return profiles_dir
+
+
+def profile_to_dict(profile: SimulationProfile) -> Dict:
+    """将Profile转换为字典"""
+    return {
+        "name": profile.name,
+        "description": profile.description,
+        "dimensions": profile.dimensions,
+        "lexicon_path": profile.lexicon_path,
+        "no_merge_default": profile.no_merge_default,
+        "word_score_overrides": profile.word_score_overrides,
+        "conflict_strategy": profile.conflict_strategy,
+        "change_probability": profile.change_probability,
+        "magnitude": profile.magnitude,
+        "drift": profile.drift,
+        "created_at": profile.created_at,
+        "updated_at": profile.updated_at,
+    }
+
+
+def dict_to_profile(data: Dict) -> SimulationProfile:
+    """将字典转换为Profile"""
+    return SimulationProfile(
+        name=data["name"],
+        description=data.get("description", ""),
+        dimensions=data.get("dimensions", []),
+        lexicon_path=data.get("lexicon_path"),
+        no_merge_default=data.get("no_merge_default", False),
+        word_score_overrides=data.get("word_score_overrides", {}),
+        conflict_strategy=data.get("conflict_strategy", "keep_first"),
+        change_probability=data.get("change_probability", 0.6),
+        magnitude=data.get("magnitude", 0.5),
+        drift=data.get("drift", {}),
+        created_at=data.get("created_at"),
+        updated_at=data.get("updated_at"),
+    )
+
+
+def save_profile(profile: SimulationProfile, profiles_dir: Optional[str] = None) -> str:
+    """
+    保存Profile到文件
+    
+    Args:
+        profile: 要保存的Profile
+        profiles_dir: Profile存储目录，默认使用get_profiles_dir()
+    
+    Returns:
+        保存的文件路径
+    """
+    import datetime
+    
+    profiles_dir = profiles_dir or get_profiles_dir()
+    filepath = os.path.join(profiles_dir, f"{profile.name}.json")
+    
+    now = datetime.datetime.now().isoformat()
+    if not profile.created_at:
+        profile.created_at = now
+    profile.updated_at = now
+    
+    data = profile_to_dict(profile)
+    with open(filepath, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    
+    return filepath
+
+
+def load_profile(name: str, profiles_dir: Optional[str] = None) -> SimulationProfile:
+    """
+    按名称加载Profile
+    
+    Args:
+        name: Profile名称
+        profiles_dir: Profile存储目录，默认使用get_profiles_dir()
+    
+    Returns:
+        加载的Profile
+    
+    Raises:
+        FileNotFoundError: 如果Profile不存在
+    """
+    profiles_dir = profiles_dir or get_profiles_dir()
+    filepath = os.path.join(profiles_dir, f"{name}.json")
+    
+    if not os.path.exists(filepath):
+        raise FileNotFoundError(f"Profile '{name}' 不存在，可使用 --list-profiles 查看可用Profile")
+    
+    with open(filepath, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    
+    return dict_to_profile(data)
+
+
+def list_profiles(profiles_dir: Optional[str] = None) -> List[Dict]:
+    """
+    列出所有可用的Profile
+    
+    Args:
+        profiles_dir: Profile存储目录，默认使用get_profiles_dir()
+    
+    Returns:
+        Profile列表，每个元素包含name、description、filepath
+    """
+    profiles_dir = profiles_dir or get_profiles_dir()
+    profiles = []
+    
+    if not os.path.exists(profiles_dir):
+        return profiles
+    
+    for filename in os.listdir(profiles_dir):
+        if filename.endswith(".json"):
+            filepath = os.path.join(profiles_dir, filename)
+            try:
+                with open(filepath, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                profiles.append({
+                    "name": data.get("name", filename[:-5]),
+                    "description": data.get("description", ""),
+                    "filepath": filepath,
+                    "created_at": data.get("created_at", ""),
+                    "updated_at": data.get("updated_at", ""),
+                })
+            except Exception:
+                continue
+    
+    return profiles
+
+
+def delete_profile(name: str, profiles_dir: Optional[str] = None) -> bool:
+    """
+    删除指定的Profile
+    
+    Args:
+        name: Profile名称
+        profiles_dir: Profile存储目录，默认使用get_profiles_dir()
+    
+    Returns:
+        是否成功删除
+    """
+    profiles_dir = profiles_dir or get_profiles_dir()
+    filepath = os.path.join(profiles_dir, f"{name}.json")
+    
+    if os.path.exists(filepath):
+        os.remove(filepath)
+        return True
+    return False

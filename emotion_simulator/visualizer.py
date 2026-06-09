@@ -108,26 +108,29 @@ class ASCIIVisualizer:
         series = result.get_emotion_series(dimension_name)
         num_points = len(series)
 
-        if num_points < 2:
-            return "数据点不足，无法绘制曲线"
-
         min_val = min(series + [dimension.min_val])
         max_val = max(series + [dimension.max_val])
 
         normalized = self._normalize_series(series, min_val, max_val)
         y_labels = self._get_axis_labels(dimension, min_val, max_val)
 
-        chart_width = min(self.width - 15, num_points * 2)
-        step_interval = max(1, num_points // chart_width)
+        if num_points == 1:
+            chart_width = 5
+            sampled_series = series
+            sampled_normalized = normalized
+            sampled_indices = [0]
+        else:
+            chart_width = min(self.width - 15, num_points * 2)
+            step_interval = max(1, num_points // chart_width)
 
-        sampled_series = [series[i] for i in range(0, num_points, step_interval)]
-        sampled_normalized = [normalized[i] for i in range(0, num_points, step_interval)]
-        sampled_indices = [i for i in range(0, num_points, step_interval)]
+            sampled_series = [series[i] for i in range(0, num_points, step_interval)]
+            sampled_normalized = [normalized[i] for i in range(0, num_points, step_interval)]
+            sampled_indices = [i for i in range(0, num_points, step_interval)]
 
-        if len(sampled_series) < 2:
-            sampled_series = series[:2]
-            sampled_normalized = normalized[:2]
-            sampled_indices = [0, num_points - 1]
+            if len(sampled_series) < 2:
+                sampled_series = series[:2]
+                sampled_normalized = normalized[:2]
+                sampled_indices = [0, num_points - 1]
 
         grid = [[" "] * len(sampled_series) for _ in range(self.height)]
 
@@ -138,17 +141,18 @@ class ASCIIVisualizer:
                 color = self._get_colors()[0]
                 grid[grid_y][i] = self._colorize(symbol, color, use_color)
 
-        for i in range(len(sampled_normalized) - 1):
-            y1 = sampled_normalized[i]
-            y2 = sampled_normalized[i + 1]
-            min_y = min(y1, y2)
-            max_y = max(y1, y2)
+        if len(sampled_normalized) > 1:
+            for i in range(len(sampled_normalized) - 1):
+                y1 = sampled_normalized[i]
+                y2 = sampled_normalized[i + 1]
+                min_y = min(y1, y2)
+                max_y = max(y1, y2)
 
-            for y in range(min_y, max_y + 1):
-                grid_y = self.height - 1 - y
-                if 0 <= grid_y < self.height and 0 <= i < len(grid[grid_y]):
-                    if grid[grid_y][i] == " ":
-                        grid[grid_y][i] = "│"
+                for y in range(min_y, max_y + 1):
+                    grid_y = self.height - 1 - y
+                    if 0 <= grid_y < self.height and 0 <= i < len(grid[grid_y]):
+                        if grid[grid_y][i] == " ":
+                            grid[grid_y][i] = "│"
 
         lines = []
         title = f"情绪演进曲线 - {dimension.high_label} vs {dimension.low_label}"
@@ -164,16 +168,19 @@ class ASCIIVisualizer:
         lines.append(x_axis)
 
         x_labels = " " * 15 + " "
-        if len(sampled_indices) > 10:
-            display_indices = sampled_indices[::len(sampled_indices) // 10]
+        if len(sampled_indices) == 1:
+            x_labels += "  0"
         else:
-            display_indices = sampled_indices
+            if len(sampled_indices) > 10:
+                display_indices = sampled_indices[::len(sampled_indices) // 10]
+            else:
+                display_indices = sampled_indices
 
-        pos = 0
-        for idx in display_indices:
-            label = str(idx)
-            x_labels += " " * (pos - len(x_labels) + 16) + label
-            pos += len(sampled_series) // len(display_indices)
+            pos = 0
+            for idx in display_indices:
+                label = str(idx)
+                x_labels += " " * (pos - len(x_labels) + 16) + label
+                pos += len(sampled_series) // len(display_indices)
 
         lines.append(x_labels)
         lines.append(" " * 15 + " " + "传递次数")
@@ -340,7 +347,10 @@ class ASCIIVisualizer:
         """
         lines = []
 
-        header = f"[第 {step.step} 次传递]"
+        if step.step == 0:
+            header = "[初始句子 (Step 0)]"
+        else:
+            header = f"[第 {step.step} 次传递]"
         lines.append(header)
 
         if step.changed_word:

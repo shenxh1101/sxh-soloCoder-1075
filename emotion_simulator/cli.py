@@ -6,12 +6,25 @@
 import argparse
 import sys
 import os
+import json
 from typing import List, Optional, Dict
+
+try:
+    import yaml
+    HAS_YAML = True
+except ImportError:
+    HAS_YAML = False
 from .models import (
     EmotionDimension,
     DefaultDimensions,
     WordConflictStrategy,
+    SimulationProfile,
     export_lexicon_template,
+    save_profile,
+    load_profile,
+    list_profiles,
+    delete_profile,
+    dimension_to_dict,
 )
 from .simulator import EmotionSimulator
 from .visualizer import ASCIIVisualizer
@@ -194,10 +207,37 @@ def create_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="启动交互式配置向导，一步步创建词库"
     )
+    special.add_argument(
+        "--list-profiles",
+        action="store_true",
+        help="列出所有可用的场景配置Profile"
+    )
+    special.add_argument(
+        "--delete-profile",
+        metavar="NAME",
+        help="删除指定的场景配置Profile"
+    )
     parser.add_argument(
         "--no-default-lexicon",
         action="store_true",
         help="导出模板时不包含默认词库（只生成极简模板）"
+    )
+
+    profile_group = parser.add_argument_group("场景配置Profile")
+    profile_group.add_argument(
+        "--profile",
+        metavar="NAME",
+        help="加载指定的场景配置Profile"
+    )
+    profile_group.add_argument(
+        "--save-profile",
+        metavar="NAME",
+        help="将当前配置保存为场景配置Profile"
+    )
+    profile_group.add_argument(
+        "--profile-description",
+        default="",
+        help="保存Profile时的描述信息"
     )
 
     parser.add_argument(
@@ -350,6 +390,12 @@ def create_parser() -> argparse.ArgumentParser:
         help="显示评分时匹配到的词（用于调试评分逻辑）"
     )
 
+    parser.add_argument(
+        "--trace",
+        action="store_true",
+        help="显示可追溯分析报告，每步展示命中词、替换词、维度贡献变化"
+    )
+
     batch_report_group = parser.add_argument_group("批量分析选项")
     batch_report_group.add_argument(
         "--report",
@@ -367,7 +413,132 @@ def create_parser() -> argparse.ArgumentParser:
         help="按维度筛选，只显示该维度变化不为0的结果"
     )
 
+    multi_scene_group = parser.add_argument_group("多场景批量对比")
+    multi_scene_group.add_argument(
+        "--multi-scene",
+        help="多场景词库路径，用逗号分隔，同一批句子分别用不同词库运行"
+    )
+    multi_scene_group.add_argument(
+        "--scene-names",
+        help="场景名称，用逗号分隔，与--multi-scene一一对应"
+    )
+
     return parser
+
+
+def apply_profile_to_args(profile: SimulationProfile, args: argparse.Namespace) -> argparse.Namespace:
+    """将Profile中的配置应用到args"""
+    if profile.dimensions and not args.dimensions:
+        dim_strs = []
+        for d in profile.dimensions:
+            dim_strs.append(f"{d['name']}:{d['low_label']}:{d['high_label']}")
+        args.dimensions = ",".join(dim_strs)
+    
+    if profile.lexicon_path and not args.lexicon:
+        args.lexicon = profile.lexicon_path
+    
+    if profile.no_merge_default:
+        args.no_merge_default = True
+    
+    if profile.word_score_overrides and not args.word_scores:
+        score_strs = []
+        for word, scores in profile.word_score_overrides.items():
+            dim_scores = ",".join([f"{k}={v}" for k, v in scores.items()])
+            score_strs.append(f"{word}:{dim_scores}")
+        args.word_scores = ";".join(score_strs)
+    
+    if profile.conflict_strategy and args.conflict_strategy == "keep_first":
+        args.conflict_strategy = profile.conflict_strategy
+    
+    if profile.change_probability != 0.6 and args.probability == 0.6:
+        args.probability = profile.change_probability
+    
+    if profile.magnitude != 0.5 and args.magnitude == 0.5:
+        args.magnitude = profile.magnitude
+    
+    if profile.drift and not args.drift:
+        drift_strs = []
+        for dim, direction in profile.drift.items():
+            drift_strs.append(f"{dim}:{direction}")
+        args.drift = ",".join(drift_strs)
+    
+    return args
+
+
+def list_profiles_cli() -> None:
+    """列出所有可用的Profile"""
+    profiles = list_profiles()
+    
+    print("\n" + "=" * 80)
+    print("  可用的场景配置Profile")
+    print("=" * 80)
+    
+    if not profiles:
+        print("\n  暂无可用的Profile")
+        print("  使用 --save-profile <名称> 保存当前配置为Profile")
+    else:
+        print(f"\n  共找到 {len(profiles)} 个Profile:\n")
+        for i, p in enumerate(profiles, 1):
+            print(f"  {i}. {p['name']}")
+            if p['description']:
+                print(f"     描述: {p['description']}")
+            if p['updated_at']:
+                print(f"     更新时间: {p['updated_at']}")
+            print(f"     文件: {p['filepath']}")
+            print()
+    
+    print("=" * 80)
+
+
+def delete_profile_cli(name: str) -> None:
+    """删除指定的Profile"""
+    print("\n" + "=" * 60)
+    print(f"  删除Profile: {name}")
+    print("=" * 60)
+    
+    if delete_profile(name):
+        print(f"\n✓ Profile '{name}' 已删除")
+    else:
+        print(f"\n✗ Profile '{name}' 不存在")
+    
+    print("=" * 60)
+
+
+def save_current_profile(
+    args: argparse.Namespace,
+    cli_dimensions: Optional[List[EmotionDimension]],
+    word_score_overrides: Optional[Dict[str, Dict[str, float]]],
+    drifts: Optional[Dict[str, float]],
+) -> None:
+    """将当前配置保存为Profile"""
+    name = args.save_profile
+    
+    dimensions = []
+    if cli_dimensions:
+        for d in cli_dimensions:
+            dimensions.append(dimension_to_dict(d))
+    
+    profile = SimulationProfile(
+        name=name,
+        description=args.profile_description,
+        dimensions=dimensions,
+        lexicon_path=args.lexicon,
+        no_merge_default=args.no_merge_default,
+        word_score_overrides=word_score_overrides or {},
+        conflict_strategy=args.conflict_strategy,
+        change_probability=args.probability,
+        magnitude=args.magnitude,
+        drift=drifts or {},
+    )
+    
+    filepath = save_profile(profile)
+    
+    print("\n" + "=" * 60)
+    print(f"  保存Profile: {name}")
+    print("=" * 60)
+    print(f"\n✓ Profile已保存到: {filepath}")
+    print(f"\n  下次使用: python main.py ... --profile {name}")
+    print("=" * 60)
 
 
 def create_simulator(
@@ -416,6 +587,13 @@ def run_single_simulation(args: argparse.Namespace) -> None:
     print("文本情绪演进模拟器 - 单次模拟")
     print("=" * 60)
 
+    if args.profile:
+        profile = load_profile(args.profile)
+        print(f"\n加载Profile: {profile.name}")
+        if profile.description:
+            print(f"描述: {profile.description}")
+        args = apply_profile_to_args(profile, args)
+
     cli_dimensions = parse_dimensions(args.dimensions) if args.dimensions else None
     locked_words = parse_locked_words(args.locked)
     drifts = parse_drift(args.drift)
@@ -429,6 +607,8 @@ def run_single_simulation(args: argparse.Namespace) -> None:
         print(f"词库配置: {args.lexicon}")
         if args.no_merge_default:
             print(f"不合并默认词库")
+    if args.profile:
+        print(f"使用Profile: {args.profile}")
     if locked_words:
         print(f"锁定关键词: {', '.join(locked_words)}")
     if drifts:
@@ -490,7 +670,7 @@ def run_single_simulation(args: argparse.Namespace) -> None:
         print("\n" + "=" * 60)
         print("评分匹配详情（最长匹配）:")
         print("=" * 60)
-        details = simulator.scorer.get_score_details(args.sentence)
+        details = simulator.scorer.get_score_details_dict(args.sentence)
         print(f"句子: {details['sentence']}")
         print(f"匹配到 {len(details['matched_words'])} 个词:")
         for i, match in enumerate(details['matched_words'], 1):
@@ -549,12 +729,25 @@ def run_single_simulation(args: argparse.Namespace) -> None:
         CSVExporter.export_timeseries(result, args.output_csv)
         print(f"时间序列CSV已导出到: {args.output_csv}")
 
+    if args.trace:
+        print(print_trace_report(result, simulator, use_color=use_color))
+
+    if args.save_profile:
+        save_current_profile(args, cli_dimensions, word_score_overrides, drifts)
+
 
 def run_batch_simulation(args: argparse.Namespace) -> None:
     """运行批量模拟"""
     print("\n" + "=" * 60)
     print("文本情绪演进模拟器 - 批量模拟")
     print("=" * 60)
+
+    if args.profile:
+        profile = load_profile(args.profile)
+        print(f"\n加载Profile: {profile.name}")
+        if profile.description:
+            print(f"描述: {profile.description}")
+        args = apply_profile_to_args(profile, args)
 
     sentences = read_sentences_from_file(args.file)
     if not sentences:
@@ -700,6 +893,65 @@ def run_batch_simulation(args: argparse.Namespace) -> None:
         )
         print(f"汇总YAML已导出到: {args.output_summary_yaml}")
 
+    if args.save_profile:
+        save_current_profile(args, cli_dimensions, word_score_overrides, drifts)
+
+
+def print_trace_report(result, simulator: EmotionSimulator, use_color: bool = True) -> str:
+    """
+    生成并打印可追溯分析报告
+    每步展示命中词、替换词、维度贡献变化
+    """
+    lines = []
+    lines.append("\n" + "=" * 90)
+    lines.append("  可追溯分析报告")
+    lines.append("=" * 90)
+    
+    for step in result.steps:
+        lines.append(f"\n[第 {step.step} 步]")
+        lines.append(f"  句子: {step.modified_sentence}")
+        lines.append(f"  分数: {step.emotion_scores}")
+        
+        if step.score_contribution:
+            sc = step.score_contribution
+            
+            matched_words = [mw.word for mw in sc.matched_words]
+            if matched_words:
+                lines.append(f"  命中词: {', '.join(matched_words)}")
+                
+                for mw in sc.matched_words:
+                    contrib_str = ", ".join([f"{k}={v:+.2f}" for k, v in mw.contribution.items()])
+                    lines.append(f"    - '{mw.word}' (词组: {mw.group_keyword}): {contrib_str}")
+            
+            if sc.main_contributor:
+                mc = sc.main_contributor
+                total_contrib = sum(abs(v) for v in mc.contribution.values())
+                lines.append(f"  主要贡献: '{mc.word}' (总贡献: {total_contrib:.2f})")
+            
+            if sc.top_dimension:
+                td = sc.top_dimension
+                lines.append(f"  最高维度: {td['dimension']} = {td['score']:+.2f} ({td['label']})")
+        
+        if step.replacement_detail:
+            rd = step.replacement_detail
+            lines.append(f"\n  替换发生: '{rd.original_word}' → '{rd.new_word}'")
+            lines.append(f"    位置: {rd.position}, 目标维度: {rd.target_dimension}")
+            lines.append(f"    替换前分数: {rd.before_scores}")
+            lines.append(f"    替换后分数: {rd.after_scores}")
+            
+            changed_dims = []
+            for dim in rd.before_scores.keys():
+                before = rd.before_scores.get(dim, 0)
+                after = rd.after_scores.get(dim, 0)
+                if abs(after - before) > 0.001:
+                    changed_dims.append(f"{dim}: {before:+.2f} → {after:+.2f} (Δ{after-before:+.2f})")
+            if changed_dims:
+                lines.append(f"    维度变化: {', '.join(changed_dims)}")
+        
+        lines.append("  " + "-" * 60)
+    
+    return "\n".join(lines)
+
 
 def print_batch_report(
     results,
@@ -719,8 +971,8 @@ def print_batch_report(
     metrics_list = []
     for result in results:
         metrics = get_result_metrics(result)
-        initial_details = simulator.scorer.get_score_details(result.initial_sentence)
-        final_details = simulator.scorer.get_score_details(result.get_final_sentence())
+        initial_details = simulator.scorer.get_score_details_dict(result.initial_sentence)
+        final_details = simulator.scorer.get_score_details_dict(result.get_final_sentence())
         metrics['_initial_details'] = initial_details
         metrics['_final_details'] = final_details
         metrics_list.append(metrics)
@@ -807,6 +1059,139 @@ def print_batch_report(
     return "\n".join(lines)
 
 
+def run_multi_scene_batch(args: argparse.Namespace) -> None:
+    """
+    多场景批量对比
+    同一批句子分别用不同词库（场景）运行，生成对比报告
+    """
+    scenes = [s.strip() for s in args.multi_scene.split(",")]
+    
+    if args.scene_names:
+        scene_names = [n.strip() for n in args.scene_names.split(",")]
+        if len(scene_names) != len(scenes):
+            print(f"警告: 场景名称数量 ({len(scene_names)}) 与场景数量 ({len(scenes)}) 不匹配，使用默认名称")
+            scene_names = [f"场景{i+1}" for i in range(len(scenes))]
+    else:
+        scene_names = [f"场景{i+1}" for i in range(len(scenes))]
+    
+    print("\n" + "=" * 100)
+    print("  多场景批量对比")
+    print("=" * 100)
+    
+    sentences = read_sentences_from_file(args.file)
+    if not sentences:
+        print(f"错误: 文件 {args.file} 中没有有效的句子")
+        sys.exit(1)
+    
+    cli_dimensions = parse_dimensions(args.dimensions) if args.dimensions else None
+    locked_words = parse_locked_words(args.locked)
+    drifts = parse_drift(args.drift)
+    word_score_overrides = parse_word_scores(args.word_scores)
+    conflict_strategy = WordConflictStrategy(args.conflict_strategy)
+    
+    print(f"\n输入文件: {args.file}")
+    print(f"句子数量: {len(sentences)}")
+    print(f"传递次数: {args.steps}")
+    print(f"场景数量: {len(scenes)}")
+    for i, (name, path) in enumerate(zip(scene_names, scenes), 1):
+        print(f"  {i}. {name}: {path}")
+    print()
+    
+    all_results = {}
+    
+    for scene_name, lexicon_path in zip(scene_names, scenes):
+        print(f"[{scene_name}] 正在模拟...")
+        
+        scene_args = argparse.Namespace(**vars(args))
+        scene_args.lexicon = lexicon_path
+        scene_args.no_merge_default = args.no_merge_default
+        
+        simulator = EmotionSimulator.from_lexicon_file(
+            lexicon_filepath=lexicon_path,
+            merge_default=not args.no_merge_default,
+            change_probability=args.probability,
+            magnitude=args.magnitude,
+            random_seed=args.seed,
+            conflict_strategy=conflict_strategy,
+            word_score_overrides=word_score_overrides,
+        )
+        
+        if cli_dimensions:
+            existing_dim_names = {d.name for d in simulator.dimensions}
+            for dim in cli_dimensions:
+                if dim.name not in existing_dim_names:
+                    simulator.add_custom_dimension(dim)
+        
+        for dim_name, direction in drifts.items():
+            simulator.set_drift(dim_name, direction)
+        
+        results = simulator.batch_simulate(
+            sentences=sentences,
+            num_steps=args.steps,
+            locked_words=locked_words,
+        )
+        
+        all_results[scene_name] = (simulator, results)
+    
+    print("\n" + "=" * 100)
+    print("  多场景对比报告")
+    print("=" * 100)
+    print(f"每句子汇总（按场景分组）")
+    print("-" * 100)
+    
+    header = "{:<30}".format("句子")
+    for name in scene_names:
+        header += "{:<25}".format(name)
+    print(header)
+    print("-" * 100)
+    
+    for i, sentence in enumerate(sentences):
+        row_text = sentence[:28] + "…" if len(sentence) > 28 else sentence
+        row = "{:<30}".format(row_text)
+        
+        for scene_name in scene_names:
+            simulator, results = all_results[scene_name]
+            result = results[i]
+            series = result.get_emotion_series(simulator.dimensions[0].name)
+            change = series[-1] - series[0]
+            final_score = series[-1]
+            
+            dim = simulator.dimensions[0]
+            label = dim.high_label if change > 0 else dim.low_label
+            
+            cell = "{:+.2f} (Δ{:+.2f})".format(final_score, change)
+            row += "{:<25}".format(cell)
+        
+        print(row)
+    
+    print("-" * 100)
+    
+    if args.output:
+        data = {
+            "scenes": scene_names,
+            "scene_paths": scenes,
+            "sentences": sentences,
+            "results": {},
+        }
+        for scene_name in scene_names:
+            _, results = all_results[scene_name]
+            data["results"][scene_name] = [JSONExporter._result_to_dict(r) for r in results]
+        
+        if args.output.lower().endswith(('.yaml', '.yml')):
+            if not HAS_YAML:
+                print("\n警告: PyYAML未安装，无法导出YAML格式。将使用JSON格式导出。")
+                args.output = args.output.rsplit('.', 1)[0] + '.json'
+            else:
+                with open(args.output, "w", encoding="utf-8") as f:
+                    yaml.dump(data, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
+                print(f"\n多场景对比结果已导出到YAML文件: {args.output}")
+                return
+        
+        with open(args.output, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        print(f"\n多场景对比结果已导出到JSON文件: {args.output}")
+
+
 def main() -> None:
     """主函数"""
     parser = create_parser()
@@ -828,10 +1213,25 @@ def main() -> None:
             run_wizard()
             return
         
+        if args.list_profiles:
+            list_profiles_cli()
+            return
+        
+        if args.delete_profile:
+            delete_profile_cli(args.delete_profile)
+            return
+        
         if not args.sentence and not args.file:
             parser.print_help()
-            print("\n错误: 请指定输入句子（位置参数）或输入文件（-f/--file），或使用特殊命令（--export-template/--wizard）")
+            print("\n错误: 请指定输入句子（位置参数）或输入文件（-f/--file），或使用特殊命令（--export-template/--wizard/--list-profiles/--delete-profile）")
             sys.exit(1)
+        
+        if args.multi_scene:
+            if not args.file:
+                print("\n错误: 多场景对比需要指定输入文件（-f/--file）")
+                sys.exit(1)
+            run_multi_scene_batch(args)
+            return
         
         if args.file:
             run_batch_simulation(args)

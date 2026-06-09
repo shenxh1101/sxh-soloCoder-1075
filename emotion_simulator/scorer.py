@@ -8,6 +8,8 @@ from .models import (
     EmotionDimension,
     SynonymGroup,
     SynonymEntry,
+    MatchedWordDetail,
+    ScoreContribution,
     create_default_synonym_groups,
     create_default_neutral_words,
     apply_word_score_overrides,
@@ -153,61 +155,134 @@ class EmotionScorer:
 
         return scores
 
-    def get_score_details(self, sentence: str) -> Dict[str, Any]:
+    def get_score_details(self, sentence: str) -> ScoreContribution:
         """
-        获取详细的评分信息（用于调试）
-        返回包含匹配词、各词分数、贡献最大维度等详细信息
+        获取详细的评分信息（用于可追溯分析）
+        返回包含匹配词、各词分数、贡献最大维度等完整信息
         """
-        matched_words = self.find_matched_words(sentence)
+        matched_words_data = self._find_all_matches(sentence)
         scores = self.score_sentence(sentence)
+        
+        matched_details = []
+        for pos, word, entry, group in matched_words_data:
+            contribution = {dim: score * entry.intensity for dim, score in entry.emotion_scores.items()}
+            detail = MatchedWordDetail(
+                word=word,
+                position=pos,
+                group_keyword=group.keyword,
+                emotion_scores=entry.emotion_scores.copy(),
+                intensity=entry.intensity,
+                contribution=contribution,
+            )
+            matched_details.append(detail)
+        
+        main_contributor = self._get_main_contributor_detail(matched_details)
+        top_dimension = self._get_top_dimension_detail(scores)
+        
+        return ScoreContribution(
+            main_contributor=main_contributor,
+            top_dimension=top_dimension,
+            matched_words=matched_details,
+        )
 
-        details = {
+    def get_score_details_dict(self, sentence: str) -> Dict[str, Any]:
+        """
+        获取详细的评分信息（字典格式，用于调试）
+        """
+        contrib = self.get_score_details(sentence)
+        return self._score_contribution_to_dict(contrib, sentence)
+
+    def _score_contribution_to_dict(self, contrib: ScoreContribution, sentence: str) -> Dict[str, Any]:
+        """将ScoreContribution转换为字典"""
+        matched_words_list = []
+        for mw in contrib.matched_words:
+            matched_words_list.append({
+                "position": mw.position,
+                "word": mw.word,
+                "intensity": mw.intensity,
+                "emotion_scores": mw.emotion_scores,
+                "contribution": mw.contribution,
+                "group_keyword": mw.group_keyword,
+            })
+        
+        main_contributor = None
+        if contrib.main_contributor:
+            mc = contrib.main_contributor
+            main_contributor = {
+                "word": mc.word,
+                "contribution": sum(abs(v) for v in mc.contribution.values()),
+                "contribution_by_dim": mc.contribution,
+            }
+        
+        return {
             "sentence": sentence,
-            "matched_words": [],
-            "final_scores": scores,
-            "main_contributor": self.get_main_contributor(sentence),
-            "top_dimension": self.get_top_dimension(sentence),
+            "matched_words": matched_words_list,
+            "final_scores": self.score_sentence(sentence),
+            "main_contributor": main_contributor,
+            "top_dimension": contrib.top_dimension,
         }
 
-        for pos, word, entry in matched_words:
-            details["matched_words"].append({
-                "position": pos,
-                "word": word,
-                "intensity": entry.intensity,
-                "emotion_scores": entry.emotion_scores,
-                "group_keyword": self._word_to_group.get(word, {}).keyword if self._word_to_group.get(word) else None,
-            })
-
-        return details
-
-    def get_main_contributor(self, sentence: str) -> Optional[Dict[str, Any]]:
+    def _get_main_contributor_detail(self, matched_details: List[MatchedWordDetail]) -> Optional[MatchedWordDetail]:
         """
-        获取对分数贡献最大的词
+        获取对分数贡献最大的词（返回MatchedWordDetail）
         """
-        matched_words = self.find_matched_words(sentence)
-        if not matched_words:
+        if not matched_details:
             return None
         
         max_contribution = 0.0
-        main_word = None
+        main_detail = None
         
-        for pos, word, entry in matched_words:
-            total_abs_score = sum(abs(s) for s in entry.emotion_scores.values()) * entry.intensity
+        for detail in matched_details:
+            total_abs_score = sum(abs(s) for s in detail.contribution.values())
             if total_abs_score > max_contribution:
                 max_contribution = total_abs_score
-                main_word = word
+                main_detail = detail
         
-        if main_word:
-            entry = self._word_to_entry[main_word]
-            group = self._word_to_group[main_word]
+        return main_detail
+
+    def _get_top_dimension_detail(self, scores: Dict[str, float]) -> Optional[Dict[str, Any]]:
+        """
+        获取绝对分数最高的维度信息
+        """
+        if not scores:
+            return None
+        
+        max_abs = 0.0
+        top_dim = None
+        top_score = 0.0
+        
+        for dim_name, score in scores.items():
+            abs_score = abs(score)
+            if abs_score > max_abs:
+                max_abs = abs_score
+                top_dim = dim_name
+                top_score = score
+        
+        if top_dim:
+            dim = next((d for d in self.dimensions if d.name == top_dim), None)
             return {
-                "word": main_word,
-                "intensity": entry.intensity,
-                "emotion_scores": entry.emotion_scores,
-                "group_keyword": group.keyword,
-                "contribution": max_contribution,
+                "dimension": top_dim,
+                "score": top_score,
+                "label": f"{dim.high_label if top_score > 0 else dim.low_label}" if dim else "",
             }
         return None
+
+    def get_main_contributor(self, sentence: str) -> Optional[Dict[str, Any]]:
+        """
+        获取对分数贡献最大的词（返回字典，向后兼容）
+        """
+        contrib = self.get_score_details(sentence)
+        if not contrib.main_contributor:
+            return None
+        
+        mc = contrib.main_contributor
+        return {
+            "word": mc.word,
+            "intensity": mc.intensity,
+            "emotion_scores": mc.emotion_scores,
+            "group_keyword": mc.group_keyword,
+            "contribution": sum(abs(v) for v in mc.contribution.values()),
+        }
 
     def get_top_dimension(self, sentence: str) -> Optional[Dict[str, Any]]:
         """

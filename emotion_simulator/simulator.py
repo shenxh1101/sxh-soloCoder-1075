@@ -4,13 +4,15 @@
 """
 
 import random
-from typing import Dict, List, Optional, Callable
+from typing import Dict, List, Optional, Callable, Tuple
 from .models import (
     EmotionDimension,
     SynonymGroup,
     SynonymEntry,
     TransmissionStep,
     SimulationResult,
+    ScoreContribution,
+    ReplacementDetail,
     DefaultDimensions,
     create_default_synonym_groups,
     load_lexicon_from_file,
@@ -111,21 +113,21 @@ class EmotionSimulator:
         self,
         sentence: str,
         locked_words: Optional[List[str]] = None,
-    ) -> tuple[str, Optional[tuple[str, str]], Dict[str, float]]:
+    ) -> Tuple[str, Optional[Tuple[str, str]], Dict[str, float], Optional[ReplacementDetail]]:
         """
         执行一次传递
-        返回：(新句子, (原词, 新词) or None, 情绪分数)
+        返回：(新句子, (原词, 新词) or None, 情绪分数, 替换详情 or None)
         """
         locked_words = locked_words or []
 
         if random.random() > self.change_probability:
             scores = self.scorer.score_sentence(sentence)
-            return sentence, None, scores
+            return sentence, None, scores, None
 
         replacable = self.scorer.find_replacable_words(sentence, locked_words)
         if not replacable:
             scores = self.scorer.score_sentence(sentence)
-            return sentence, None, scores
+            return sentence, None, scores, None
 
         pos, original_word, group = random.choice(replacable)
 
@@ -138,12 +140,27 @@ class EmotionSimulator:
         )
 
         if not new_entry or new_entry.word == original_word:
-            return sentence, None, current_scores
+            return sentence, None, current_scores, None
 
         new_sentence = sentence[:pos] + new_entry.word + sentence[pos + len(original_word):]
         new_scores = self.scorer.score_sentence(new_sentence)
 
-        return new_sentence, (original_word, new_entry.word), new_scores
+        before_contrib = self.scorer.get_score_details(sentence)
+        after_contrib = self.scorer.get_score_details(new_sentence)
+
+        replacement_detail = ReplacementDetail(
+            original_word=original_word,
+            new_word=new_entry.word,
+            group_keyword=group.keyword,
+            position=pos,
+            target_dimension=target_dimension,
+            before_scores=current_scores,
+            after_scores=new_scores,
+            before_contribution=before_contrib,
+            after_contribution=after_contrib,
+        )
+
+        return new_sentence, (original_word, new_entry.word), new_scores, replacement_detail
 
     def simulate(
         self,
@@ -154,6 +171,9 @@ class EmotionSimulator:
     ) -> SimulationResult:
         """
         执行完整的模拟
+        
+        注意：始终会添加step 0（初始句子的分数），
+        这样不管num_steps=0还是首步就替换，都有原句的起点分数
         """
         locked_words = locked_words or []
         result = SimulationResult(
@@ -164,9 +184,28 @@ class EmotionSimulator:
 
         current_sentence = initial_sentence
 
+        initial_scores = self.scorer.score_sentence(initial_sentence)
+        initial_contrib = self.scorer.get_score_details(initial_sentence)
+        step_0 = TransmissionStep(
+            step=0,
+            original_sentence=initial_sentence,
+            modified_sentence=initial_sentence,
+            emotion_scores=initial_scores,
+            changed_word=None,
+            locked_words=locked_words.copy(),
+            score_contribution=initial_contrib,
+            replacement_detail=None,
+        )
+        result.steps.append(step_0)
+
+        if callback:
+            callback(step_0)
+
         for step_num in range(num_steps):
             original = current_sentence
-            new_sentence, changed, scores = self.transmit(current_sentence, locked_words)
+            new_sentence, changed, scores, replacement_detail = self.transmit(current_sentence, locked_words)
+
+            score_contrib = self.scorer.get_score_details(new_sentence)
 
             step = TransmissionStep(
                 step=step_num + 1,
@@ -175,6 +214,8 @@ class EmotionSimulator:
                 emotion_scores=scores,
                 changed_word=changed,
                 locked_words=locked_words.copy(),
+                score_contribution=score_contrib,
+                replacement_detail=replacement_detail,
             )
 
             result.steps.append(step)

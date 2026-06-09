@@ -137,20 +137,25 @@ def test_simulator():
         random_seed=42,
     )
 
-    new_sentence, changed, scores = simulator.transmit("今天天气不错")
+    new_sentence, changed, scores, replacement_detail = simulator.transmit("今天天气不错")
     print(f"✓ 单次传递完成")
     print(f"  原句: 今天天气不错")
     print(f"  新句: {new_sentence}")
     print(f"  变化: {changed}")
     print(f"  分数: {scores}")
+    if replacement_detail:
+        print(f"  替换详情: {replacement_detail.original_word} → {replacement_detail.new_word}")
 
     result = simulator.simulate(
         initial_sentence="今天天气不错",
         num_steps=5,
         locked_words=[],
     )
-    assert len(result.steps) == 5
+    assert len(result.steps) == 6  # 5 steps + step 0
     assert result.initial_sentence == "今天天气不错"
+    assert result.steps[0].step == 0
+    assert result.steps[0].emotion_scores is not None
+    print(f"\n✓ Step 0 起点分数正确: {result.steps[0].emotion_scores}")
     print(f"\n✓ 5步模拟完成")
     print(f"  初始句子: {result.initial_sentence}")
     print(f"  最终句子: {result.get_final_sentence()}")
@@ -215,6 +220,10 @@ def test_visualizer():
     print("✓ 多维度图表生成成功")
 
     step_info = visualizer.print_step_info(result.steps[0], use_color=False)
+    assert "初始句子 (Step 0)" in step_info
+    print("✓ Step 0 初始句子格式化成功")
+    
+    step_info = visualizer.print_step_info(result.steps[1], use_color=False)
     assert "第 1 次传递" in step_info
     print("✓ 单步信息格式化成功")
 
@@ -236,8 +245,10 @@ def test_exporter():
     assert "steps" in json_str
     data = json.loads(json_str)
     assert data["initial_sentence"] == "今天天气不错"
-    assert len(data["steps"]) == 5
-    print("✓ JSON字符串导出成功")
+    assert len(data["steps"]) == 6  # 5 steps + step 0
+    assert data["steps"][0]["step"] == 0
+    assert "emotion_scores" in data["steps"][0]
+    print("✓ JSON字符串导出成功，包含Step 0起点分数")
 
     with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False, encoding='utf-8') as f:
         temp_path = f.name

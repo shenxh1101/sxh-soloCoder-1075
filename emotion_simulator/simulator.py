@@ -14,6 +14,7 @@ from .models import (
     DefaultDimensions,
     create_default_synonym_groups,
     load_lexicon_from_file,
+    WordConflictStrategy,
 )
 from .scorer import EmotionScorer
 
@@ -32,12 +33,19 @@ class EmotionSimulator:
         magnitude: float = 0.5,
         drift_strength: float = 0.0,
         random_seed: Optional[int] = None,
+        conflict_strategy: WordConflictStrategy = WordConflictStrategy.KEEP_FIRST,
+        word_owner_map: Optional[Dict[str, str]] = None,
     ):
         self.dimensions = dimensions or DefaultDimensions.get_defaults()
-        self.scorer = EmotionScorer(self.dimensions, synonym_groups)
+        self.scorer = EmotionScorer(
+            self.dimensions, synonym_groups,
+            conflict_strategy=conflict_strategy,
+            word_owner_map=word_owner_map,
+        )
         self.change_probability = change_probability
         self.magnitude = magnitude
         self.drift_strength = drift_strength
+        self.conflict_strategy = conflict_strategy
         self.drift_direction: Dict[str, float] = {dim.name: 0.0 for dim in self.dimensions}
 
         if random_seed is not None:
@@ -202,6 +210,19 @@ class EmotionSimulator:
         self.scorer.add_custom_dimension(dimension)
         self.drift_direction[dimension.name] = 0.0
 
+    def apply_word_score_overrides(self, overrides: Dict[str, Dict[str, float]]) -> List[str]:
+        """
+        应用词分覆盖（运行时修改词的维度分数）
+        
+        Args:
+            overrides: {词: {维度名: 分数}}
+        
+        Returns:
+            被修改的词列表
+        """
+        modified = self.scorer.apply_word_overrides(overrides)
+        return modified
+
     @classmethod
     def from_lexicon_file(
         cls,
@@ -211,23 +232,30 @@ class EmotionSimulator:
         magnitude: float = 0.5,
         drift_strength: float = 0.0,
         random_seed: Optional[int] = None,
+        conflict_strategy: WordConflictStrategy = WordConflictStrategy.KEEP_FIRST,
+        word_score_overrides: Optional[Dict[str, Dict[str, float]]] = None,
     ) -> "EmotionSimulator":
         """
         从词库配置文件创建模拟器
         
         Args:
-            lexicon_filepath: 词库JSON配置文件路径
+            lexicon_filepath: 词库JSON/YAML配置文件路径
             merge_default: 是否合并默认词库
             change_probability: 变化概率
             magnitude: 变化幅度
             drift_strength: 漂移强度
             random_seed: 随机种子
+            conflict_strategy: 词冲突处理策略
+            word_score_overrides: 词分覆盖 {词: {维度名: 分数}}
         
         Returns:
             EmotionSimulator实例
         """
-        dimensions, synonym_groups, neutral_words = load_lexicon_from_file(
-            lexicon_filepath, merge_default=merge_default
+        dimensions, synonym_groups, neutral_words, word_owner_map = load_lexicon_from_file(
+            lexicon_filepath,
+            merge_default=merge_default,
+            conflict_strategy=conflict_strategy,
+            word_score_overrides=word_score_overrides,
         )
 
         simulator = cls(
@@ -237,6 +265,8 @@ class EmotionSimulator:
             magnitude=magnitude,
             drift_strength=drift_strength,
             random_seed=random_seed,
+            conflict_strategy=conflict_strategy,
+            word_owner_map=word_owner_map,
         )
 
         simulator.scorer.neutral_words = neutral_words

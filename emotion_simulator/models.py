@@ -9,6 +9,20 @@ from enum import Enum
 import json
 import os
 
+try:
+    import yaml
+    HAS_YAML = True
+except ImportError:
+    HAS_YAML = False
+
+
+class WordConflictStrategy(Enum):
+    """词冲突处理策略"""
+    KEEP_FIRST = "keep_first"
+    KEEP_LAST = "keep_last"
+    ERROR = "error"
+    MERGE = "merge"
+
 
 class EmotionDimension:
     """
@@ -391,30 +405,279 @@ def load_neutral_words_from_config(config: Dict) -> List[str]:
 
 def load_config_from_file(filepath: str) -> Dict:
     """
-    从JSON文件加载配置
+    从JSON或YAML文件加载配置，自动检测格式
     """
     if not os.path.exists(filepath):
         raise FileNotFoundError(f"配置文件不存在: {filepath}")
     
+    ext = os.path.splitext(filepath)[1].lower()
+    
     with open(filepath, "r", encoding="utf-8") as f:
-        config = json.load(f)
+        if ext in [".yaml", ".yml"]:
+            if not HAS_YAML:
+                raise ImportError("请先安装 PyYAML: pip install pyyaml")
+            config = yaml.safe_load(f)
+        else:
+            config = json.load(f)
     
     return config
 
 
+def detect_word_conflicts(
+    groups: List[SynonymGroup]
+) -> Dict[str, List[str]]:
+    """
+    检测同义词组中的词冲突
+    
+    Returns:
+        {词: [所属同义词组keyword列表]}
+    """
+    word_to_groups: Dict[str, List[str]] = {}
+    for group in groups:
+        for entry in group.entries:
+            if entry.word not in word_to_groups:
+                word_to_groups[entry.word] = []
+            word_to_groups[entry.word].append(group.keyword)
+    
+    conflicts = {word: groups for word, groups in word_to_groups.items() if len(groups) > 1}
+    return conflicts
+
+
+def resolve_word_conflicts(
+    groups: List[SynonymGroup],
+    strategy: WordConflictStrategy = WordConflictStrategy.KEEP_FIRST
+) -> Tuple[List[SynonymGroup], Dict[str, str]]:
+    """
+    解决同义词组中的词冲突
+    
+    Args:
+        groups: 同义词组列表
+        strategy: 冲突处理策略
+            - KEEP_FIRST: 保留第一个出现的词组中的词
+            - KEEP_LAST: 保留最后一个出现的词组中的词
+            - ERROR: 遇到冲突抛出错误
+            - MERGE: 合并所有词组的分数（取平均值）
+    
+    Returns:
+        (处理后的同义词组, 词到最终所属组的映射)
+    """
+    conflicts = detect_word_conflicts(groups)
+    if not conflicts:
+        word_owner = {}
+        for group in groups:
+            for entry in group.entries:
+                word_owner[entry.word] = group.keyword
+        return groups, word_owner
+    
+    if strategy == WordConflictStrategy.ERROR:
+        conflict_msgs = [f"'{word}' 出现在词组: {', '.join(groups)}" for word, groups in conflicts.items()]
+        raise ValueError(f"检测到词冲突:\n" + "\n".join(conflict_msgs))
+    
+    word_owner: Dict[str, str] = {}
+    word_entries: Dict[str, List[Tuple[str, SynonymEntry]]] = {}
+    
+    for group in groups:
+        for entry in group.entries:
+            if entry.word not in word_entries:
+                word_entries[entry.word] = []
+            word_entries[entry.word].append((group.keyword, entry))
+    
+    if strategy == WordConflictStrategy.KEEP_FIRST:
+        for word, entries in word_entries.items():
+            word_owner[word] = entries[0][0]
+    elif strategy == WordConflictStrategy.KEEP_LAST:
+        for word, entries in word_entries.items():
+            word_owner[word] = entries[-1][0]
+    elif strategy == WordConflictStrategy.MERGE:
+        merged_groups: Dict[str, SynonymGroup] = {}
+        for word, entries in word_entries.items():
+            if len(entries) == 1:
+                word_owner[word] = entries[0][0]
+                continue
+            
+            all_scores: Dict[str, List[float]] = {}
+            total_intensity = 0.0
+            for _, entry in entries:
+                for dim, score in entry.emotion_scores.items():
+                    if dim not in all_scores:
+                        all_scores[dim] = []
+                    all_scores[dim].append(score * entry.intensity)
+                total_intensity += entry.intensity
+            
+            avg_scores = {dim: sum(scores) / len(scores) for dim, scores in all_scores.items()}
+            avg_intensity = total_intensity / len(entries)
+            
+            merged_entry = SynonymEntry(
+                word=word,
+                emotion_scores=avg_scores,
+                intensity=avg_intensity
+            )
+            
+            merged_keyword = entries[0][0]
+            word_owner[word] = merged_keyword
+            
+            if merged_keyword not in merged_groups:
+                original_group = next(g for g in groups if g.keyword == merged_keyword)
+                merged_groups[merged_keyword] = SynonymGroup(
+                    keyword=merged_keyword,
+                    entries=[e for e in original_group.entries if e.word != word]
+                )
+            
+            merged_groups[merged_keyword].entries.append(merged_entry)
+        
+        result_groups = []
+        for group in groups:
+            if group.keyword in merged_groups:
+                result_groups.append(merged_groups[group.keyword])
+            else:
+                has_conflict_word = any(e.word in conflicts for e in group.entries)
+                if not has_conflict_word:
+                    result_groups.append(group)
+        
+        return result_groups, word_owner
+    
+    result_groups = []
+    for group in groups:
+        filtered_entries = []
+        for entry in group.entries:
+            if word_owner.get(entry.word) == group.keyword:
+                filtered_entries.append(entry)
+        if filtered_entries:
+            result_groups.append(SynonymGroup(
+                keyword=group.keyword,
+                entries=filtered_entries
+            ))
+    
+    return result_groups, word_owner
+
+
+def apply_word_score_overrides(
+    groups: List[SynonymGroup],
+    overrides: Dict[str, Dict[str, float]],
+    create_if_missing: bool = True
+) -> Tuple[List[SynonymGroup], List[str]]:
+    """
+    应用词分覆盖
+    
+    Args:
+        groups: 同义词组列表
+        overrides: {词: {维度名: 分数}}
+        create_if_missing: 如果词不存在，是否创建新的词组
+    
+    Returns:
+        (更新后的同义词组, 被修改的词列表)
+    """
+    modified_words = []
+    word_to_group: Dict[str, SynonymGroup] = {}
+    
+    for group in groups:
+        for entry in group.entries:
+            word_to_group[entry.word] = group
+    
+    for word, scores in overrides.items():
+        if word in word_to_group:
+            group = word_to_group[word]
+            entry = group.get_entry(word)
+            if entry:
+                for dim, score in scores.items():
+                    entry.emotion_scores[dim] = score
+                modified_words.append(word)
+        elif create_if_missing:
+            new_group = SynonymGroup(
+                keyword=word,
+                entries=[
+                    SynonymEntry(
+                        word=word,
+                        emotion_scores=scores,
+                        intensity=1.0
+                    )
+                ]
+            )
+            groups.append(new_group)
+            word_to_group[word] = new_group
+            modified_words.append(word)
+    
+    return groups, modified_words
+
+
+def export_lexicon_template(
+    filepath: str,
+    include_default: bool = True,
+    format: str = "json"
+) -> None:
+    """
+    导出词库配置模板
+    
+    Args:
+        filepath: 输出文件路径
+        include_default: 是否包含默认词库内容
+        format: 输出格式 ('json' 或 'yaml')
+    """
+    if include_default:
+        dimensions = DefaultDimensions.get_defaults()
+        synonym_groups = create_default_synonym_groups()
+        neutral_words = create_default_neutral_words()
+    else:
+        dimensions = [
+            EmotionDimension(name="positive_negative", low_label="消极", high_label="积极"),
+            EmotionDimension(name="custom_dimension", low_label="低", high_label="高"),
+        ]
+        synonym_groups = [
+            SynonymGroup(
+                keyword="示例词组",
+                entries=[
+                    SynonymEntry(
+                        word="示例词1",
+                        emotion_scores={"positive_negative": 2.0, "custom_dimension": -1.0},
+                        intensity=1.0
+                    ),
+                    SynonymEntry(
+                        word="示例词2",
+                        emotion_scores={"positive_negative": -2.0, "custom_dimension": 1.0},
+                        intensity=1.0
+                    ),
+                ]
+            )
+        ]
+        neutral_words = ["的", "了", "是"]
+    
+    config = {
+        "_comment": "词库配置模板 - 可在此基础上修改为您的场景（工作压力、学习、客服等）",
+        "dimensions": [dimension_to_dict(d) for d in dimensions],
+        "synonym_groups": [synonym_group_to_dict(g) for g in synonym_groups],
+        "neutral_words": neutral_words,
+    }
+    
+    ext = os.path.splitext(filepath)[1].lower()
+    if ext in [".yaml", ".yml"]:
+        format = "yaml"
+    
+    with open(filepath, "w", encoding="utf-8") as f:
+        if format == "yaml":
+            if not HAS_YAML:
+                raise ImportError("请先安装 PyYAML: pip install pyyaml")
+            yaml.dump(config, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
+        else:
+            json.dump(config, f, ensure_ascii=False, indent=2)
+
+
 def load_lexicon_from_file(
     filepath: str,
-    merge_default: bool = True
-) -> Tuple[List[EmotionDimension], List[SynonymGroup], List[str]]:
+    merge_default: bool = True,
+    conflict_strategy: WordConflictStrategy = WordConflictStrategy.KEEP_FIRST,
+    word_score_overrides: Optional[Dict[str, Dict[str, float]]] = None,
+) -> Tuple[List[EmotionDimension], List[SynonymGroup], List[str], Dict[str, str]]:
     """
     从文件加载完整词库配置
     
     Args:
-        filepath: JSON配置文件路径
+        filepath: JSON或YAML配置文件路径
         merge_default: 是否合并默认词库（默认维度、同义词组、中性词）
+        conflict_strategy: 词冲突处理策略
+        word_score_overrides: 词分覆盖 {词: {维度名: 分数}}
     
     Returns:
-        (dimensions, synonym_groups, neutral_words)
+        (dimensions, synonym_groups, neutral_words, word_owner_map)
     """
     config = load_config_from_file(filepath)
     
@@ -441,11 +704,20 @@ def load_lexicon_from_file(
                 has_conflict = any(e.word in existing_words for e in group.entries)
                 if not has_conflict:
                     synonym_groups.append(group)
+                    for e in group.entries:
+                        existing_words.add(e.word)
         
         default_neutral = create_default_neutral_words()
         neutral_words = list(set(neutral_words + default_neutral))
     
-    return dimensions, synonym_groups, neutral_words
+    if word_score_overrides:
+        synonym_groups, _ = apply_word_score_overrides(
+            synonym_groups, word_score_overrides, create_if_missing=True
+        )
+    
+    synonym_groups, word_owner_map = resolve_word_conflicts(synonym_groups, conflict_strategy)
+    
+    return dimensions, synonym_groups, neutral_words, word_owner_map
 
 
 def dimension_to_dict(dimension: EmotionDimension) -> Dict:
@@ -481,9 +753,17 @@ def export_lexicon_to_file(
     dimensions: List[EmotionDimension],
     synonym_groups: List[SynonymGroup],
     neutral_words: Optional[List[str]] = None,
+    format: Optional[str] = None,
 ) -> None:
     """
-    导出词库配置到JSON文件
+    导出词库配置到JSON或YAML文件
+    
+    Args:
+        filepath: 输出文件路径
+        dimensions: 情绪维度列表
+        synonym_groups: 同义词组列表
+        neutral_words: 中性词列表
+        format: 输出格式 ('json', 'yaml')，None则根据文件扩展名自动检测
     """
     config = {
         "dimensions": [dimension_to_dict(d) for d in dimensions],
@@ -492,5 +772,14 @@ def export_lexicon_to_file(
     if neutral_words is not None:
         config["neutral_words"] = neutral_words
     
+    if format is None:
+        ext = os.path.splitext(filepath)[1].lower()
+        format = "yaml" if ext in [".yaml", ".yml"] else "json"
+    
     with open(filepath, "w", encoding="utf-8") as f:
-        json.dump(config, f, ensure_ascii=False, indent=2)
+        if format == "yaml":
+            if not HAS_YAML:
+                raise ImportError("请先安装 PyYAML: pip install pyyaml")
+            yaml.dump(config, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
+        else:
+            json.dump(config, f, ensure_ascii=False, indent=2)

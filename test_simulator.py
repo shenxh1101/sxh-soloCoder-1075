@@ -369,7 +369,7 @@ def test_lexicon_file():
     assert 'synonym_groups' in config
     print(f"✓ 配置文件加载成功，包含 {len(config['dimensions'])} 个维度和 {len(config['synonym_groups'])} 组词")
 
-    dimensions, groups, neutral_words = load_lexicon_from_file(lexicon_path, merge_default=False)
+    dimensions, groups, neutral_words, word_owner = load_lexicon_from_file(lexicon_path, merge_default=False)
     assert len(dimensions) == 3
     assert len(groups) == 4
     dim_names = [d.name for d in dimensions]
@@ -377,8 +377,9 @@ def test_lexicon_file():
     assert 'satisfaction' in dim_names
     assert 'tension' in dim_names
     print(f"✓ 词库加载成功（不合并默认）: {len(dimensions)} 维度, {len(groups)} 同义词组")
+    assert len(word_owner) > 0, "应该返回词所属映射"
 
-    dimensions_all, groups_all, neutral_all = load_lexicon_from_file(lexicon_path, merge_default=True)
+    dimensions_all, groups_all, neutral_all, word_owner_all = load_lexicon_from_file(lexicon_path, merge_default=True)
     assert len(dimensions_all) >= 6
     assert len(groups_all) >= 4
     print(f"✓ 词库加载成功（合并默认）: {len(dimensions_all)} 维度, {len(groups_all)} 同义词组")
@@ -582,6 +583,243 @@ def test_custom_dimension_with_lexicon():
     print("\n自定义维度配合词库测试通过！\n")
 
 
+def test_word_conflict_strategy():
+    """测试词冲突处理策略"""
+    print("=" * 60)
+    print("测试11: 词冲突处理策略")
+    print("=" * 60)
+
+    from emotion_simulator.models import (
+        WordConflictStrategy,
+        detect_word_conflicts,
+        resolve_word_conflicts,
+    )
+
+    group1 = SynonymGroup(
+        keyword="组1",
+        entries=[
+            SynonymEntry("很好", {"positive_negative": 3.5}),
+            SynonymEntry("不错", {"positive_negative": 2.5}),
+        ]
+    )
+    group2 = SynonymGroup(
+        keyword="组2",
+        entries=[
+            SynonymEntry("很好", {"positive_negative": 5.0}),
+            SynonymEntry("好", {"positive_negative": 2.5}),
+        ]
+    )
+
+    conflicts = detect_word_conflicts([group1, group2])
+    assert "很好" in conflicts
+    assert len(conflicts["很好"]) == 2
+    print(f"✓ 冲突检测成功: {conflicts}")
+
+    resolved_keep_first, owner_first = resolve_word_conflicts(
+        [group1, group2], WordConflictStrategy.KEEP_FIRST
+    )
+    assert owner_first["很好"] == "组1"
+    print(f"✓ KEEP_FIRST策略: '很好' 属于 {owner_first['很好']}")
+
+    resolved_keep_last, owner_last = resolve_word_conflicts(
+        [group1, group2], WordConflictStrategy.KEEP_LAST
+    )
+    assert owner_last["很好"] == "组2"
+    print(f"✓ KEEP_LAST策略: '很好' 属于 {owner_last['很好']}")
+
+    resolved_merge, owner_merge = resolve_word_conflicts(
+        [group1, group2], WordConflictStrategy.MERGE
+    )
+    assert owner_merge["很好"] == "组1"
+    merged_entry = next(e for g in resolved_merge for e in g.entries if e.word == "很好")
+    assert merged_entry.emotion_scores["positive_negative"] == (3.5 + 5.0) / 2
+    print(f"✓ MERGE策略: '很好' 分数 = {merged_entry.emotion_scores['positive_negative']:.2f} (平均)")
+
+    try:
+        resolve_word_conflicts([group1, group2], WordConflictStrategy.ERROR)
+        assert False, "应该抛出错误"
+    except ValueError as e:
+        print(f"✓ ERROR策略: 正确抛出错误")
+
+    print("\n词冲突处理策略测试通过！\n")
+
+
+def test_word_score_overrides():
+    """测试词分覆盖功能"""
+    print("=" * 60)
+    print("测试12: 词分覆盖功能")
+    print("=" * 60)
+
+    dimensions = DefaultDimensions.get_defaults()
+    scorer = EmotionScorer(dimensions)
+
+    old_scores = scorer.score_sentence("今天天气不错")
+    print(f"覆盖前 '不错' 的分数: {old_scores}")
+
+    overrides = {
+        "不错": {"positive_negative": 5.0, "anger_calm": 3.0},
+        "新词汇": {"positive_negative": -2.0},
+    }
+
+    modified = scorer.apply_word_overrides(overrides)
+    assert "不错" in modified
+    assert "新词汇" in modified
+    print(f"✓ 已覆盖 {len(modified)} 个词的分数: {modified}")
+
+    new_scores = scorer.score_sentence("今天天气不错")
+    assert new_scores["positive_negative"] > old_scores["positive_negative"]
+    print(f"覆盖后 '不错' 的分数: {new_scores}")
+
+    new_word_scores = scorer.score_sentence("这是一个新词汇")
+    assert new_word_scores["positive_negative"] < 0
+    print(f"✓ 新词 '新词汇' 评分正确: {new_word_scores}")
+
+    simulator = EmotionSimulator(random_seed=42)
+    modified_sim = simulator.apply_word_score_overrides(overrides)
+    assert len(modified_sim) == 2
+    print("✓ 模拟器词分覆盖功能正常")
+
+    print("\n词分覆盖功能测试通过！\n")
+
+
+def test_yaml_support():
+    """测试YAML支持"""
+    print("=" * 60)
+    print("测试13: YAML格式支持")
+    print("=" * 60)
+
+    from emotion_simulator.models import (
+        HAS_YAML,
+        export_lexicon_template,
+        load_config_from_file,
+    )
+    from emotion_simulator.exporter import YAMLExporter
+
+    assert HAS_YAML, "PyYAML应该已安装"
+    print("✓ PyYAML 可用")
+
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False, encoding='utf-8') as f:
+        temp_yaml = f.name
+
+    try:
+        export_lexicon_template(temp_yaml, include_default=False)
+        assert os.path.exists(temp_yaml)
+        print(f"✓ 词库模板YAML导出成功: {temp_yaml}")
+
+        config = load_config_from_file(temp_yaml)
+        assert 'dimensions' in config
+        assert 'synonym_groups' in config
+        print(f"✓ YAML配置加载成功，包含 {len(config['dimensions'])} 个维度")
+
+        simulator = EmotionSimulator(random_seed=42)
+        result = simulator.simulate("今天天气不错", num_steps=5)
+
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False, encoding='utf-8') as f:
+            temp_result_yaml = f.name
+
+        try:
+            YAMLExporter.export(result, temp_result_yaml)
+            assert os.path.exists(temp_result_yaml)
+            print("✓ 模拟结果YAML导出成功")
+        finally:
+            if os.path.exists(temp_result_yaml):
+                os.unlink(temp_result_yaml)
+
+    finally:
+        if os.path.exists(temp_yaml):
+            os.unlink(temp_yaml)
+
+    print("\nYAML格式支持测试通过！\n")
+
+
+def test_unified_index_logic():
+    """测试评分和替换使用统一索引逻辑"""
+    print("=" * 60)
+    print("测试14: 统一索引逻辑（评分和替换一致性）")
+    print("=" * 60)
+
+    from emotion_simulator.models import WordConflictStrategy
+
+    group1 = SynonymGroup(
+        keyword="组A",
+        entries=[
+            SynonymEntry("很好", {"positive_negative": 3.0}),
+            SynonymEntry("好", {"positive_negative": 2.0}),
+            SynonymEntry("不错", {"positive_negative": 2.5}),
+        ]
+    )
+    group2 = SynonymGroup(
+        keyword="组B",
+        entries=[
+            SynonymEntry("很好", {"positive_negative": 5.0}),
+            SynonymEntry("完美", {"positive_negative": 4.5}),
+        ]
+    )
+
+    dimensions = DefaultDimensions.get_defaults()
+    scorer = EmotionScorer(
+        dimensions,
+        synonym_groups=[group1, group2],
+        conflict_strategy=WordConflictStrategy.KEEP_FIRST,
+    )
+
+    test_sentence = "今天天气很好"
+    score_details = scorer.get_score_details(test_sentence)
+    matched_words = [m['word'] for m in score_details['matched_words']]
+    assert "很好" in matched_words
+    print(f"✓ 评分匹配到的词: {matched_words}")
+
+    replacable = scorer.find_replacable_words(test_sentence, [])
+    replacable_words = [w for _, w, _ in replacable]
+    assert "很好" in replacable_words
+    print(f"✓ 替换可用的词: {replacable_words}")
+
+    for match in score_details['matched_words']:
+        if match['word'] == "很好":
+            scored_group = match['group_keyword']
+            break
+
+    for _, word, group in replacable:
+        if word == "很好":
+            replaced_group = group.keyword
+            break
+
+    assert scored_group == replaced_group, f"评分和替换应该使用同一组: 评分={scored_group}, 替换={replaced_group}"
+    print(f"✓ 评分和替换使用同一组: {scored_group}")
+
+    entry = scorer.get_word_entry("很好")
+    assert entry.emotion_scores["positive_negative"] == 3.0, f"应该使用KEEP_FIRST策略，分数为3.0，实际为{entry.emotion_scores['positive_negative']}"
+    print(f"✓ 冲突词使用正确的分数: positive_negative={entry.emotion_scores['positive_negative']}")
+
+    print("\n统一索引逻辑测试通过！\n")
+
+
+def test_cli_helpers():
+    """测试CLI辅助函数"""
+    print("=" * 60)
+    print("测试15: CLI辅助函数（词分解析等）")
+    print("=" * 60)
+
+    from emotion_simulator.cli import parse_word_scores
+
+    score_str = "有点累:work_pressure=3.0,positive_negative=-2.0;很好:positive_negative=4.0"
+    overrides = parse_word_scores(score_str)
+    assert "有点累" in overrides
+    assert "很好" in overrides
+    assert overrides["有点累"]["work_pressure"] == 3.0
+    assert overrides["有点累"]["positive_negative"] == -2.0
+    assert overrides["很好"]["positive_negative"] == 4.0
+    print(f"✓ 词分解析成功: {overrides}")
+
+    score_str_simple = "测试词:dim1=1.5"
+    overrides_simple = parse_word_scores(score_str_simple)
+    assert len(overrides_simple) == 1
+    assert overrides_simple["测试词"]["dim1"] == 1.5
+    print("✓ 简单词分解析成功")
+
+    print("\nCLI辅助函数测试通过！\n")
+
+
 def main():
     """运行所有测试"""
     print("\n" + "=" * 60)
@@ -599,6 +837,11 @@ def main():
         test_lexicon_file()
         test_batch_summary()
         test_custom_dimension_with_lexicon()
+        test_word_conflict_strategy()
+        test_word_score_overrides()
+        test_yaml_support()
+        test_unified_index_logic()
+        test_cli_helpers()
 
         print("=" * 60)
         print("✓ 所有测试通过！")

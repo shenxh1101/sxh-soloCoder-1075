@@ -1,12 +1,19 @@
 """
 导出模块
-支持将模拟结果导出为JSON格式
+支持将模拟结果导出为JSON和YAML格式
 """
 
 import json
 import csv
 import io
 from typing import List, Dict, Any, Optional
+
+try:
+    import yaml
+    HAS_YAML = True
+except ImportError:
+    HAS_YAML = False
+
 from .models import SimulationResult, TransmissionStep, EmotionDimension
 
 
@@ -407,3 +414,95 @@ class CSVExporter:
                     for dim in results[0].dimensions:
                         row[dim.name] = step.emotion_scores.get(dim.name, 0.0)
                     writer.writerow(row)
+
+
+def get_result_metrics(result: SimulationResult) -> Dict[str, Any]:
+    """
+    获取单个结果的统计指标（供外部使用）
+    """
+    return BatchSummarizer.get_result_metrics(result)
+
+
+class YAMLExporter:
+    """
+    YAML导出器
+    将模拟结果导出为YAML格式
+    """
+
+    @staticmethod
+    def _check_yaml() -> None:
+        """检查YAML是否可用"""
+        if not HAS_YAML:
+            raise ImportError("请先安装 PyYAML: pip install pyyaml")
+
+    @staticmethod
+    def export(result: SimulationResult, filepath: str) -> None:
+        """
+        导出单个模拟结果为YAML文件
+        """
+        YAMLExporter._check_yaml()
+        data = JSONExporter._result_to_dict(result)
+        with open(filepath, "w", encoding="utf-8") as f:
+            yaml.dump(data, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
+
+    @staticmethod
+    def export_batch(results: List[SimulationResult], filepath: str) -> None:
+        """
+        导出批量模拟结果为YAML文件
+        """
+        YAMLExporter._check_yaml()
+        data = {
+            "count": len(results),
+            "results": [JSONExporter._result_to_dict(r) for r in results],
+        }
+        if results:
+            data["common_dimensions"] = [
+                JSONExporter._dimension_to_dict(d) for d in results[0].dimensions
+            ]
+        with open(filepath, "w", encoding="utf-8") as f:
+            yaml.dump(data, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
+
+    @staticmethod
+    def export_summary(
+        results: List[SimulationResult],
+        filepath: str,
+        sort_by: Optional[str] = None,
+        sort_ascending: bool = False,
+    ) -> None:
+        """
+        导出批量汇总为YAML文件
+        """
+        YAMLExporter._check_yaml()
+        summary = {
+            "count": len(results),
+            "sort_by": sort_by,
+            "sort_ascending": sort_ascending,
+            "results": BatchSummarizer.summarize(results, sort_by, sort_ascending),
+        }
+        if results:
+            summary["dimensions"] = [
+                JSONExporter._dimension_to_dict(d) for d in results[0].dimensions
+            ]
+        with open(filepath, "w", encoding="utf-8") as f:
+            yaml.dump(summary, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
+
+    @staticmethod
+    def to_string(result: SimulationResult) -> str:
+        """
+        将单个模拟结果转换为YAML字符串
+        """
+        YAMLExporter._check_yaml()
+        data = JSONExporter._result_to_dict(result)
+        return yaml.dump(data, allow_unicode=True, default_flow_style=False, sort_keys=False)
+
+    @staticmethod
+    def batch_to_string(results: List[SimulationResult]) -> str:
+        """
+        将批量模拟结果转换为YAML字符串
+        """
+        YAMLExporter._check_yaml()
+        data = {
+            "count": len(results),
+            "results": [JSONExporter._result_to_dict(r) for r in results],
+        }
+        return yaml.dump(data, allow_unicode=True, default_flow_style=False, sort_keys=False)

@@ -19,6 +19,16 @@ from emotion_simulator.models import (
     create_default_synonym_groups,
     load_lexicon_from_file,
     load_config_from_file,
+    MatchedWordDetail,
+    ScoreContribution,
+    ReplacementDetail,
+    SimulationProfile,
+    save_profile,
+    load_profile,
+    list_profiles,
+    delete_profile,
+    get_profiles_dir,
+    dimension_to_dict,
 )
 from emotion_simulator.scorer import EmotionScorer
 from emotion_simulator.simulator import EmotionSimulator
@@ -344,7 +354,7 @@ def test_longest_matching():
     scorer = EmotionScorer(dimensions)
 
     test_sentence = "有点累，今天工作很好"
-    details = scorer.get_score_details(test_sentence)
+    details = scorer.get_score_details_dict(test_sentence)
 
     print(f"测试句子: {test_sentence}")
     print(f"匹配到 {len(details['matched_words'])} 个词:")
@@ -775,7 +785,7 @@ def test_unified_index_logic():
     )
 
     test_sentence = "今天天气很好"
-    score_details = scorer.get_score_details(test_sentence)
+    score_details = scorer.get_score_details_dict(test_sentence)
     matched_words = [m['word'] for m in score_details['matched_words']]
     assert "很好" in matched_words
     print(f"✓ 评分匹配到的词: {matched_words}")
@@ -831,6 +841,228 @@ def test_cli_helpers():
     print("\nCLI辅助函数测试通过！\n")
 
 
+def test_profile_management():
+    """测试Profile管理功能"""
+    print("=" * 60)
+    print("测试16: Profile管理功能")
+    print("=" * 60)
+    
+    profiles_dir = get_profiles_dir()
+    print(f"Profile存储目录: {profiles_dir}")
+    
+    profile_name = "test_profile_management"
+    
+    try:
+        delete_profile(profile_name)
+    except:
+        pass
+    
+    try:
+        dimensions = [
+            dimension_to_dict(EmotionDimension("positive_negative", "积极", "消极", -5, 5)),
+            dimension_to_dict(EmotionDimension("anger_calm", "愤怒", "平静", -5, 5)),
+        ]
+        
+        profile = SimulationProfile(
+            name=profile_name,
+            dimensions=dimensions,
+            lexicon_path="work_lexicon.json",
+            no_merge_default=False,
+            word_score_overrides={"不错": {"positive_negative": 5.0}},
+            conflict_strategy="keep_first",
+            change_probability=0.7,
+            magnitude=0.6,
+            drift={"positive_negative": 0.3},
+            description="测试Profile",
+        )
+        
+        save_profile(profile)
+        print(f"✓ Profile保存成功: {profile_name}")
+        
+        profiles = list_profiles()
+        profile_names = [p["name"] for p in profiles]
+        assert profile_name in profile_names, f"Profile列表中应该包含{profile_name}"
+        print(f"✓ Profile列表功能正常，共 {len(profiles)} 个Profile")
+        
+        loaded_profile = load_profile(profile_name)
+        assert loaded_profile.name == profile_name
+        assert loaded_profile.lexicon_path == "work_lexicon.json"
+        assert loaded_profile.change_probability == 0.7
+        assert loaded_profile.magnitude == 0.6
+        assert loaded_profile.conflict_strategy == "keep_first"
+        assert loaded_profile.word_score_overrides["不错"]["positive_negative"] == 5.0
+        print(f"✓ Profile加载成功: {loaded_profile.name}")
+        print(f"  描述: {loaded_profile.description}")
+        print(f"  词库: {loaded_profile.lexicon_path}")
+        print(f"  概率: {loaded_profile.change_probability}, 幅度: {loaded_profile.magnitude}")
+        
+        delete_profile(profile_name)
+        profiles_after_delete = list_profiles()
+        profile_names_after_delete = [p["name"] for p in profiles_after_delete]
+        assert profile_name not in profile_names_after_delete, f"Profile删除后应该不在列表中"
+        print(f"✓ Profile删除成功")
+        
+        print("\nProfile管理功能测试通过！\n")
+    finally:
+        try:
+            delete_profile(profile_name)
+        except:
+            pass
+
+
+def test_trace_data_structures():
+    """测试可追溯数据结构"""
+    print("=" * 60)
+    print("测试17: 可追溯数据结构")
+    print("=" * 60)
+    
+    simulator = EmotionSimulator(
+        change_probability=1.0,
+        magnitude=0.5,
+        random_seed=42,
+    )
+    
+    result = simulator.simulate("今天天气不错", num_steps=3)
+    
+    assert len(result.steps) == 4, f"应该有4个步骤（0-3），实际有{len(result.steps)}个"
+    print(f"✓ 步骤数量正确: {len(result.steps)} 步（包含step 0）")
+    
+    step0 = result.steps[0]
+    assert step0.step == 0
+    assert step0.score_contribution is not None
+    assert step0.score_contribution.main_contributor is not None
+    print(f"✓ Step 0 有完整的可追溯信息")
+    print(f"  主要贡献词: '{step0.score_contribution.main_contributor.word}'")
+    print(f"  匹配词数量: {len(step0.score_contribution.matched_words)}")
+    
+    for mw in step0.score_contribution.matched_words:
+        assert isinstance(mw, MatchedWordDetail)
+        assert mw.word is not None
+        assert mw.position >= 0
+        print(f"    - 位置{mw.position}: '{mw.word}', 强度: {mw.intensity}")
+    
+    for step in result.steps:
+        if step.changed_word:
+            assert step.replacement_detail is not None
+            assert isinstance(step.replacement_detail, ReplacementDetail)
+            assert step.replacement_detail.original_word == step.changed_word[0]
+            assert step.replacement_detail.new_word == step.changed_word[1]
+            print(f"\n✓ Step {step.step} 替换详情完整:")
+            print(f"  替换: '{step.replacement_detail.original_word}' → '{step.replacement_detail.new_word}'")
+            print(f"  目标维度: {step.replacement_detail.target_dimension}")
+            print(f"  替换前分数: {step.replacement_detail.before_scores}")
+            print(f"  替换后分数: {step.replacement_detail.after_scores}")
+            
+            assert step.replacement_detail.before_contribution is not None
+            assert step.replacement_detail.after_contribution is not None
+            assert isinstance(step.replacement_detail.before_contribution, ScoreContribution)
+            assert isinstance(step.replacement_detail.after_contribution, ScoreContribution)
+            print(f"  替换前后贡献信息完整")
+            break
+    
+    print("\n可追溯数据结构测试通过！\n")
+
+
+def test_step_zero_score():
+    """测试step 0起点分数在导出中的正确性"""
+    print("=" * 60)
+    print("测试18: Step 0起点分数导出验证")
+    print("=" * 60)
+    
+    simulator = EmotionSimulator(
+        change_probability=0.0,
+        magnitude=0.5,
+        random_seed=42,
+    )
+    
+    test_sentence = "今天天气不错"
+    initial_scores = simulator.scorer.score_sentence(test_sentence)
+    print(f"初始句子分数: {initial_scores}")
+    
+    result = simulator.simulate(test_sentence, num_steps=0)
+    
+    assert len(result.steps) == 1, f"steps=0时应该只有1个步骤（step 0），实际有{len(result.steps)}个"
+    assert result.steps[0].step == 0
+    assert result.steps[0].emotion_scores == initial_scores
+    print(f"✓ steps=0时只有step 0，分数正确")
+    
+    json_str = JSONExporter.to_string(result, indent=2)
+    json_data = json.loads(json_str)
+    assert len(json_data["steps"]) == 1
+    assert json_data["steps"][0]["step"] == 0
+    assert json_data["steps"][0]["emotion_scores"]["positive_negative"] == initial_scores["positive_negative"]
+    print(f"✓ JSON导出第一步是step 0，分数正确: {json_data['steps'][0]['emotion_scores']}")
+    
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
+        temp_path = f.name
+    
+    try:
+        CSVExporter.export_timeseries(result, temp_path)
+        assert os.path.exists(temp_path)
+        
+        import csv
+        with open(temp_path, 'r', encoding='utf-8-sig') as f:
+            reader = csv.DictReader(f)
+            rows = list(reader)
+        
+        assert len(rows) >= 1
+        assert rows[0]["step"] == "0"
+        assert float(rows[0]["positive_negative"]) == initial_scores["positive_negative"]
+        print(f"✓ CSV导出第一行是step 0，分数正确: {rows[0]['positive_negative']}")
+    finally:
+        os.unlink(temp_path)
+    
+    visualizer = ASCIIVisualizer()
+    chart = visualizer.plot_single(result, "positive_negative", use_color=False)
+    assert "情绪演进曲线" in chart
+    print(f"✓ 终端曲线包含step 0起点")
+    
+    print("\nStep 0起点分数导出测试通过！\n")
+
+
+def test_word_scores_with_step_zero():
+    """测试带--word-scores时step 0的正确性"""
+    print("=" * 60)
+    print("测试19: 带词分覆盖时Step 0正确性")
+    print("=" * 60)
+    
+    word_score_overrides = {
+        "不错": {"positive_negative": 3.5, "anger_calm": 2.0},
+        "天气": {"positive_negative": 1.0},
+    }
+    
+    simulator = EmotionSimulator(
+        change_probability=1.0,
+        magnitude=0.5,
+        random_seed=42,
+        word_score_overrides=word_score_overrides,
+    )
+    
+    test_sentence = "今天天气不错"
+    initial_scores = simulator.scorer.score_sentence(test_sentence)
+    print(f"带词分覆盖的初始分数: {initial_scores}")
+    
+    result = simulator.simulate(test_sentence, num_steps=3)
+    
+    assert len(result.steps) == 4
+    assert result.steps[0].step == 0
+    assert result.steps[0].emotion_scores == initial_scores
+    print(f"✓ Step 0分数正确，已应用词分覆盖")
+    
+    json_str = JSONExporter.to_string(result, indent=2)
+    json_data = json.loads(json_str)
+    assert json_data["steps"][0]["step"] == 0
+    assert json_data["steps"][0]["emotion_scores"]["positive_negative"] == initial_scores["positive_negative"]
+    assert json_data["steps"][0]["score_contribution"] is not None
+    print(f"✓ JSON导出第一步是原句分数，包含可追溯信息")
+    
+    assert len(json_data["steps"]) == 4
+    assert json_data["steps"][1]["step"] == 1
+    print(f"✓ JSON导出后续步骤正确追加")
+    
+    print("\n带词分覆盖时Step 0正确性测试通过！\n")
+
+
 def main():
     """运行所有测试"""
     print("\n" + "=" * 60)
@@ -853,6 +1085,10 @@ def main():
         test_yaml_support()
         test_unified_index_logic()
         test_cli_helpers()
+        test_profile_management()
+        test_trace_data_structures()
+        test_step_zero_score()
+        test_word_scores_with_step_zero()
 
         print("=" * 60)
         print("✓ 所有测试通过！")

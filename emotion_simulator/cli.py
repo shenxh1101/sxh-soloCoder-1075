@@ -396,6 +396,13 @@ def create_parser() -> argparse.ArgumentParser:
         help="显示可追溯分析报告，每步展示命中词、替换词、维度贡献变化"
     )
 
+    parser.add_argument(
+        "--trace-top",
+        type=int,
+        default=0,
+        help="批量追踪时只显示变化最大的前N条句子（0表示全部显示）"
+    )
+
     batch_report_group = parser.add_argument_group("批量分析选项")
     batch_report_group.add_argument(
         "--report",
@@ -700,7 +707,7 @@ def run_single_simulation(args: argparse.Namespace) -> None:
                       f"{series[0]:+.2f} → {series[-1]:+.2f} "
                       f"(变化: {series[-1] - series[0]:+.2f})")
 
-    if not args.no_chart and args.steps > 0:
+    if not args.no_chart:
         print("\n" + "=" * 60)
         if args.multi_dim:
             print("多维度情绪演进曲线:")
@@ -841,7 +848,7 @@ def run_batch_simulation(args: argparse.Namespace) -> None:
             use_color=use_color,
         ))
 
-    if not args.no_chart and args.steps > 0:
+    if not args.no_chart:
         print("\n" + "=" * 60)
         for dim in simulator.dimensions:
             print(f"\n{dim.high_label} vs {dim.low_label} 对比曲线:")
@@ -892,6 +899,9 @@ def run_batch_simulation(args: argparse.Namespace) -> None:
             sort_ascending=args.sort_ascending,
         )
         print(f"汇总YAML已导出到: {args.output_summary_yaml}")
+
+    if args.trace:
+        print(print_batch_trace_report(results, simulator, top_n=args.trace_top, use_color=use_color))
 
     if args.save_profile:
         save_current_profile(args, cli_dimensions, word_score_overrides, drifts)
@@ -950,6 +960,94 @@ def print_trace_report(result, simulator: EmotionSimulator, use_color: bool = Tr
         
         lines.append("  " + "-" * 60)
     
+    return "\n".join(lines)
+
+
+def print_batch_trace_report(results, simulator: EmotionSimulator, top_n: int = 0, use_color: bool = True) -> str:
+    """
+    生成并打印批量可追溯分析报告
+    支持按变化幅度排序和Top N筛选
+    """
+    from .exporter import get_result_metrics
+    
+    result_with_metrics = []
+    for result in results:
+        metrics = get_result_metrics(result)
+        total_change = 0
+        for dim in simulator.dimensions:
+            change_key = f"{dim.name}_change_abs"
+            total_change += metrics.get(change_key, 0)
+        result_with_metrics.append((result, metrics, total_change))
+    
+    result_with_metrics.sort(key=lambda x: x[2], reverse=True)
+    
+    if top_n > 0:
+        result_with_metrics = result_with_metrics[:top_n]
+    
+    lines = []
+    lines.append("=" * 80)
+    lines.append("批量可追溯分析报告")
+    if top_n > 0:
+        lines.append(f"(显示变化最大的前 {top_n} 条)")
+    lines.append("=" * 80)
+    
+    for idx, (result, metrics, total_change) in enumerate(result_with_metrics, 1):
+        lines.append(f"\n[{idx}/{len(result_with_metrics)}] 总变化幅度: {total_change:+.2f}")
+        lines.append(f"初始句子: {result.initial_sentence}")
+        lines.append(f"最终句子: {result.get_final_sentence()}")
+        lines.append(f"变化次数: {metrics['changes_count']}/{metrics['total_steps']}")
+        
+        dim_changes = []
+        for dim in simulator.dimensions:
+            change_key = f"{dim.name}_change"
+            change = metrics.get(change_key, 0)
+            if abs(change) > 0.001:
+                dim_changes.append(f"{dim.name}: {change:+.2f}")
+        if dim_changes:
+            lines.append(f"维度变化: {', '.join(dim_changes)}")
+        
+        lines.append(f"\n  步骤详情:")
+        lines.append(f"  {'-' * 76}")
+        
+        for step in result.steps:
+            if step.step == 0:
+                line = f"  [Step 0] 初始: {step.modified_sentence}"
+                if step.score_contribution and step.score_contribution.main_contributor:
+                    mc = step.score_contribution.main_contributor
+                    first_dim = list(mc.contribution.keys())[0] if mc.contribution else ""
+                    contrib_val = mc.contribution.get(first_dim, 0)
+                    line += f" [主要贡献: '{mc.word}'={contrib_val:.2f}]"
+                lines.append(line)
+            else:
+                if step.changed_word:
+                    line = f"  [Step {step.step}] '{step.changed_word[0]}' → '{step.changed_word[1]}'"
+                    if step.replacement_detail:
+                        rd = step.replacement_detail
+                        line += f" [目标维度: {rd.target_dimension}]"
+                        max_change_dim = None
+                        max_change_val = 0
+                        for dim in rd.before_scores.keys():
+                            before = rd.before_scores.get(dim, 0)
+                            after = rd.after_scores.get(dim, 0)
+                            change = abs(after - before)
+                            if change > max_change_val:
+                                max_change_val = change
+                                max_change_dim = dim
+                        if max_change_dim:
+                            before = rd.before_scores.get(max_change_dim, 0)
+                            after = rd.after_scores.get(max_change_dim, 0)
+                            line += f" [{max_change_dim}: {before:+.2f}→{after:+.2f}]"
+                    lines.append(line)
+                else:
+                    lines.append(f"  [Step {step.step}] 无变化")
+            
+            if step.score_contribution and step.score_contribution.matched_words:
+                matched_words = [mw.word for mw in step.score_contribution.matched_words]
+                lines.append(f"            命中词: {', '.join(matched_words)}")
+        
+        lines.append(f"  {'-' * 76}")
+    
+    lines.append("\n" + "=" * 80)
     return "\n".join(lines)
 
 
@@ -1133,10 +1231,42 @@ def run_multi_scene_batch(args: argparse.Namespace) -> None:
         
         all_results[scene_name] = (simulator, results)
     
+    max_scene_info = []
+    for i, sentence in enumerate(sentences):
+        max_change = -1
+        max_scene = None
+        scene_details = {}
+        for scene_name in scene_names:
+            simulator, results = all_results[scene_name]
+            result = results[i]
+            total_change = 0
+            max_dim = None
+            max_dim_change = -1
+            for dim in simulator.dimensions:
+                series = result.get_emotion_series(dim.name)
+                dim_change = abs(series[-1] - series[0])
+                total_change += dim_change
+                if dim_change > max_dim_change:
+                    max_dim_change = dim_change
+                    max_dim = dim.name
+            scene_details[scene_name] = {
+                'total_change': total_change,
+                'max_dimension': max_dim,
+                'max_dimension_change': max_dim_change,
+            }
+            if total_change > max_change:
+                max_change = total_change
+                max_scene = scene_name
+        max_scene_info.append({
+            'max_scene': max_scene,
+            'max_change': max_change,
+            'scene_details': scene_details,
+        })
+    
     print("\n" + "=" * 100)
     print("  多场景对比报告")
     print("=" * 100)
-    print(f"每句子汇总（按场景分组）")
+    print(f"每句子汇总（按场景分组，★表示影响最大的场景）")
     print("-" * 100)
     
     header = "{:<30}".format("句子")
@@ -1148,6 +1278,7 @@ def run_multi_scene_batch(args: argparse.Namespace) -> None:
     for i, sentence in enumerate(sentences):
         row_text = sentence[:28] + "…" if len(sentence) > 28 else sentence
         row = "{:<30}".format(row_text)
+        info = max_scene_info[i]
         
         for scene_name in scene_names:
             simulator, results = all_results[scene_name]
@@ -1160,9 +1291,16 @@ def run_multi_scene_batch(args: argparse.Namespace) -> None:
             label = dim.high_label if change > 0 else dim.low_label
             
             cell = "{:+.2f} (Δ{:+.2f})".format(final_score, change)
+            if scene_name == info['max_scene']:
+                cell = "★ " + cell
+            else:
+                cell = "  " + cell
             row += "{:<25}".format(cell)
         
         print(row)
+        
+        detail = info['scene_details'][info['max_scene']]
+        print(f"  影响最大: {info['max_scene']} (总变化: {info['max_change']:+.2f}, 关键维度: {detail['max_dimension']} Δ{detail['max_dimension_change']:+.2f})")
     
     print("-" * 100)
     
@@ -1172,7 +1310,25 @@ def run_multi_scene_batch(args: argparse.Namespace) -> None:
             "scene_paths": scenes,
             "sentences": sentences,
             "results": {},
+            "scene_analysis": [],
         }
+        for i, sentence in enumerate(sentences):
+            info = max_scene_info[i]
+            analysis = {
+                "sentence": sentence,
+                "most_impactful_scene": info['max_scene'],
+                "total_change": info['max_change'],
+                "scene_details": {},
+            }
+            for scene_name in scene_names:
+                detail = info['scene_details'][scene_name]
+                analysis["scene_details"][scene_name] = {
+                    "total_change": detail['total_change'],
+                    "max_dimension": detail['max_dimension'],
+                    "max_dimension_change": detail['max_dimension_change'],
+                }
+            data["scene_analysis"].append(analysis)
+        
         for scene_name in scene_names:
             _, results = all_results[scene_name]
             data["results"][scene_name] = [JSONExporter._result_to_dict(r) for r in results]
